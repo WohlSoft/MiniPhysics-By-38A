@@ -1,0 +1,14 @@
+*.user*
+*.obj
+*.o
+*.suo
+*.opensdf
+*.sdf
+*.aps
+*.upx
+Makefile*
+/_build
+/ipch
+/DoxyDocs
+/Debug
+/Release
