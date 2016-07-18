@@ -2,6 +2,7 @@
 #include <QPainter>
 #include <QKeyEvent>
 #include <QMessageBox>
+#include <QApplication>
 
 #include "PGE_File_Formats/file_formats.h"
 
@@ -13,7 +14,7 @@ MiniPhysics::MiniPhysics(QWidget* parent):
     keyMap[Qt::Key_Space] = false;
 
     LevelData file;
-    if( !FileFormats::OpenLevelFile("C:/_Repos/MiniPhysics/MiniPhysics/test.lvlx", file) )
+    if( !FileFormats::OpenLevelFile(QApplication::applicationDirPath()+"/test.lvlx", file) )
         QMessageBox::critical(nullptr, "SHIT", file.ERROR_info);
 
     pl.m_id = obj::SL_Rect;
