@@ -9,6 +9,8 @@ QT       += core gui opengl widgets
 TARGET = MiniPhysics
 TEMPLATE = app
 
+CONFIG += c++11
+
 DEFINES += PGE_FILES_QT
 
 SOURCES += main.cpp\
