@@ -84,24 +84,15 @@ MiniPhysics::MiniPhysics(QWidget* parent):
     looper.start(15);
 }
 
-bool pt(double x1, double y1, double w1, double h1,
-        double x2, double y2, double w2, double h2)
-{
-    if( (y1 + h1 > y2) && (y2 + h2 > y1) )
-        return ((x1 + w1 > x2) && (x2 + w2 > x1));
-    return false;
-}
+
 
 template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
-void MiniPhysics::loop()
+void MiniPhysics::iterateStep()
 {
-    double k = 0;
-    int i=0, contactAt=obj::Contact_None, ck=0, tm=0, td=0;
     bool lk, rk;
-
     {
         obj &brick = objs.last();
         brick.m_dx = brick.m_x;
@@ -158,6 +149,22 @@ End With
         pl.m_x += pl.m_velX;
         pl.m_y += pl.m_velY;
     }
+
+}
+
+static inline bool pt(double x1, double y1, double w1, double h1,
+        double x2, double y2, double w2, double h2)
+{
+    if( (y1 + h1 > y2) && (y2 + h2 > y1) )
+        return ((x1 + w1 > x2) && (x2 + w2 > x1));
+    return false;
+}
+
+void MiniPhysics::processCollisions()
+{
+    double k = 0;
+    int i=0, contactAt=obj::Contact_None, /*ck=0,*/ tm=0, td=0;
+    bool lk, rk;
     tm = -1;
     td = 0;
 
@@ -329,7 +336,12 @@ End With
         td = 1;
         goto tipc;
     }
+}
 
+void MiniPhysics::loop()
+{
+    iterateStep();
+    processCollisions();
     repaint();
 }
 

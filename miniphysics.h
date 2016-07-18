@@ -116,6 +116,8 @@ class MiniPhysics : public QOpenGLWidget
 public:
     explicit MiniPhysics(QWidget* parent=nullptr);
 protected:
+    void iterateStep();
+    void processCollisions();
     void loop();
     void keyPressEvent(QKeyEvent *event);
     void keyReleaseEvent(QKeyEvent *event);
