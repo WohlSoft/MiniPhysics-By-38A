@@ -15,7 +15,10 @@ MiniPhysics::MiniPhysics(QWidget* parent):
 
     LevelData file;
     if( !FileFormats::OpenLevelFile(QApplication::applicationDirPath()+"/test.lvlx", file) )
-        QMessageBox::critical(nullptr, "SHIT", file.ERROR_info);
+    {
+        QMessageBox::critical(nullptr, "SHIT", file.meta.ERROR_info);
+        return;
+    }
 
     pl.m_id = obj::SL_Rect;
     pl.m_x = file.players[0].x;
