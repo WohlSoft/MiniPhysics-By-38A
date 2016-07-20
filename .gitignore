@@ -12,3 +12,8 @@ Makefile*
 /DoxyDocs
 /Debug
 /Release
+
+
+#Junks from VisualBasic 6
+*.vbw
+*.csi
