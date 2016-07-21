@@ -11,6 +11,8 @@ TEMPLATE = app
 
 CONFIG += c++11
 
+QMAKE_CXXFLAGS += -ffloat-store
+
 DEFINES += PGE_FILES_QT
 
 SOURCES += main.cpp\

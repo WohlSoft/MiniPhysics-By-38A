@@ -85,7 +85,8 @@ MiniPhysics::MiniPhysics(QWidget* parent):
     }
 
     connect(&looper, &QTimer::timeout, this, &MiniPhysics::loop);
-    looper.start(15);
+    looper.setTimerType(Qt::PreciseTimer);
+    looper.start(30);
 }
 
 
