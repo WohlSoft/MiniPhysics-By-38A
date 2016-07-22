@@ -41,31 +41,42 @@ public:
 
     obj(int x=0, int y=0, int id=0) :
         m_id(id),
-        m_dx(0.0),
-        m_dy(0.0),
         m_x(x),
         m_y(y),
+        m_oldx(x),
+        m_oldy(y),
         m_w(32.0),
         m_h(32.0),
         m_velX(0.0),
+        m_velX_source(0.0),
         m_velY(0.0),
-        m_st(false)
+        m_stand(false),
+        m_squished(false),
+        drawSpeed(false)
     {}
     obj(const obj& o) :
         m_id(o.m_id),
-        m_dx(o.m_dx),
-        m_dy(o.m_dy),
         m_x(o.m_x),
         m_y(o.m_y),
+        m_oldx(o.m_oldx),
+        m_oldy(o.m_oldy),
         m_w(o.m_w),
         m_h(o.m_h),
         m_velX(o.m_velX),
+        m_velX_source(o.m_velX_source),
         m_velY(o.m_velY),
-        m_st(o.m_st)
+        m_stand(o.m_stand),
+        m_squished(o.m_squished),
+        drawSpeed(o.drawSpeed)
     {}
 
     void paint(QPainter &p)
     {
+        if(m_squished)
+        {
+            p.setBrush(Qt::red);
+        }
+
         QPolygonF poly;
         switch(m_id)
         {
@@ -97,17 +108,22 @@ public:
         case SL_Rect:
             p.drawRect(m_x, m_y, m_w, m_h); break;
         }
+        if(drawSpeed)
+            p.drawText(m_x, m_y-10, QString("%1 %2").arg(m_velX, 7).arg(m_velY, 7) );
     }
     int     m_id;
-    double  m_dx;
-    double  m_dy;
     double  m_x;
     double  m_y;
+    double  m_oldx;
+    double  m_oldy;
     double  m_w;
     double  m_h;
     double  m_velX;
+    double  m_velX_source;
     double  m_velY;
-    bool    m_st;
+    bool    m_stand;
+    bool    m_squished;
+    bool    drawSpeed;
 };
 
 class MiniPhysics : public QOpenGLWidget

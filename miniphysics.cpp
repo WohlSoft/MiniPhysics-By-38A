@@ -23,10 +23,11 @@ MiniPhysics::MiniPhysics(QWidget* parent):
     pl.m_id = obj::SL_Rect;
     pl.m_x = file.players[0].x;
     pl.m_y = file.players[0].y;
-    pl.m_dx = pl.m_x;
-    pl.m_dy = pl.m_y;
+    pl.m_oldx = pl.m_x;
+    pl.m_oldy = pl.m_y;
     pl.m_w = 25;
     pl.m_h = 30;
+    pl.drawSpeed = true;
 
     for(int i=0; i<file.blocks.size(); i++)
     {
@@ -80,13 +81,21 @@ MiniPhysics::MiniPhysics(QWidget* parent):
     //objs.push_back(obj(3, 4, obj::SL_RIGHT_TOP));
     */
     {
-        obj &brick = objs.last();
-        brick.m_velX = 0.8;
+        int lastID = objs.size()-1;
+        obj &brick1 = objs[lastID];
+        brick1.m_velX = 0.8;
+        brick1.drawSpeed = true;
+        obj &brick2 = objs[lastID-1];
+        brick2.m_velY = 1.0;
+        obj &brick3 = objs[lastID-2];
+        brick3.m_velX = 0.8;
+        obj &brick4 = objs[lastID-3];
+        brick4.m_velX = 1.6;
     }
 
     connect(&looper, &QTimer::timeout, this, &MiniPhysics::loop);
     looper.setTimerType(Qt::PreciseTimer);
-    looper.start(30);
+    looper.start(25);
 }
 
 
@@ -99,58 +108,86 @@ void MiniPhysics::iterateStep()
 {
     bool lk, rk;
     {
-        obj &brick = objs.last();
-        brick.m_dx = brick.m_x;
-        brick.m_x += brick.m_velX;
+        static double brick1Passed = 0.0;
+        static double brick2Passed = 0.0;
+        static double brick3Passed = 0.0;
+        static double brick4Passed = 0.0;
+
+        int lastID = objs.size()-1;
+        obj &brick1 = objs[lastID];
+
+        brick1.m_oldx = brick1.m_x;
+        brick1.m_oldy = brick1.m_y;
+        brick1.m_x   += brick1.m_velX;
+        brick1.m_y   += brick1.m_velY;
+
+        brick1.m_velX = sin(brick1Passed)*2.0;
+        brick1.m_velY = cos(brick1Passed)*2.0;
+        brick1Passed += 0.07;
+
+        obj &brick2 = objs[lastID-1];
+        brick2.m_oldy = brick2.m_y;
+        brick2.m_y   += brick2.m_velY;
+        brick2Passed += brick2.m_velY;
         //brick.y += brick.spy;
-        if(brick.m_x > 8*32 || brick.m_x < 2*32)
-            brick.m_velX *= -1.0;
+        if(brick2Passed > 8.0*32.0 || brick2Passed < 0.0)
+            brick2.m_velY *= -1.0;
+
+        obj &brick3 = objs[lastID-2];
+        brick3.m_oldx = brick3.m_x;
+        brick3.m_x   += brick3.m_velX;
+        brick3Passed += brick3.m_velX;
+        //brick.y += brick.spy;
+        if(brick3Passed > 8.0*32.0 || brick3Passed < 0.0)
+            brick3.m_velX *= -1.0;
+
+        obj &brick4 = objs[lastID-3];
+        brick4.m_oldx = brick4.m_x;
+        brick4.m_x   += brick4.m_velX;
+        brick4Passed += brick4.m_velX;
+        //brick.y += brick.spy;
+        if(brick4Passed > 8.0*32.0 || brick4Passed < 0.0)
+            brick4.m_velX *= -1.0;
     }
 
     { //With pl
-
-/*
- * With pl
-    lk = GetAsyncKeyState(vbKeyLeft) < 0
-    rk = GetAsyncKeyState(vbKeyRight) < 0
-    If lk Xor rk Then
-        If lk And .spx > -6 Then .spx = .spx - 0.4
-        If rk And .spx < 6 Then .spx = .spx + 0.4
-    ElseIf lk = False And rk = False Then
-        If Abs(.spx) > 0.4 Then .spx = .spx - Sgn(.spx) * 0.4 Else .spx = 0
-    End If
-    If .spy < 8 And .st = False Then .spy = .spy + 0.4
-    If .st And GetAsyncKeyState(vbKeyUp) < 0 Then .spy = -10 '8
-    .st = False
-    .dx = .x
-    .dy = .y
-    .x = .x + .spx
-    .y = .y + .spy
-End With
-*/
         lk = keyMap[Qt::Key_Left];
         rk = keyMap[Qt::Key_Right];
+        double Xmod = 0;
         if(lk ^ rk)
         {
-            if(lk && pl.m_velX > -6)
-                pl.m_velX -= 0.4;
-            if(rk && pl.m_velX < 6)
-                pl.m_velX += 0.4;
+            if(lk && pl.m_velX_source > -6)
+                Xmod -= 0.4;
+            if(rk && pl.m_velX_source < 6)
+                Xmod += 0.4;
         }
-        else if( !lk && !rk) {
-            if(fabs(pl.m_velX) > 0.4) {
-                pl.m_velX -= sgn(pl.m_velX)*0.4;
-            } else {
-                pl.m_velX = 0;
+        else if( !lk && !rk)
+        {
+            if(fabs(pl.m_velX_source) > 0.4)
+            {
+                Xmod -= sgn(pl.m_velX_source)*0.4;
+            }
+            else
+            {
+                //pl.m_velX_source = 0;
+                Xmod = -pl.m_velX_source;
             }
         }
-        if(pl.m_velY < 8 && !pl.m_st)
+        pl.m_velX        += Xmod;
+        pl.m_velX_source += Xmod;
+
+        if(!pl.m_stand)
+            pl.m_velX = pl.m_velX_source;
+
+        if(pl.m_velY < 8 && !pl.m_stand)
             pl.m_velY += 0.4;
-        if(pl.m_st && keyMap[Qt::Key_Space])
+        if(pl.m_stand && keyMap[Qt::Key_Space])
             pl.m_velY = -10; //'8
-        pl.m_st = false;
-        pl.m_dx = pl.m_x;
-        pl.m_dy = pl.m_y;
+
+        pl.m_stand      = false;
+        pl.m_squished   = false;
+        pl.m_oldx = pl.m_x;
+        pl.m_oldy = pl.m_y;
         pl.m_x += pl.m_velX;
         pl.m_y += pl.m_velY;
     }
@@ -165,6 +202,12 @@ static inline bool pt(double x1, double y1, double w1, double h1,
     return false;
 }
 
+static inline bool recttouch(double X,  double Y,   double w,   double h,
+                             double x2, double y2,  double w2,  double h2)
+{
+    return ( (X + w > x2) && (x2 + w2 > X) && (Y + h > y2) && (y2 + h2 > Y));
+}
+
 void MiniPhysics::processCollisions()
 {
     double k = 0;
@@ -176,10 +219,34 @@ void MiniPhysics::processCollisions()
     //Return player to top back on fall down
     //if(pl.y > 8*32)
     //    pl.y = 64;
-
+    double divSpeed = 0.0;
     for(i=0; i<objs.size(); i++)
     {
         contactAt = obj::Contact_None;
+//        if( recttouch(pl.m_x, pl.m_y, pl.m_w, pl.m_h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h) )
+//        {
+//            pl.m_squished = true;
+//            if(!recttouch(pl.m_x, pl.m_oldy, pl.m_w, pl.m_h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h ) )
+//            {
+//                if(!pl.m_stand)
+//                {
+//                    if(pl.m_y + pl.m_h / 2.0 < objs[i].m_y + objs[i].m_h / 2.0)
+//                    {
+//                        pl.m_y = objs[i].m_y - pl.m_h;
+//                    } else {
+//                        pl.m_y = objs[i].m_y + objs[i].m_h;
+//                    }
+//                }
+//            }
+//            else if(!recttouch(pl.m_oldx, pl.m_y, pl.m_w, pl.m_h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h ) )
+//            {
+//                if(pl.m_x + pl.m_w/2.0 < objs[i].m_x + objs[i].m_w / 2.0 )
+//                    pl.m_x = objs[i].m_x - pl.m_w;
+//                else
+//                    pl.m_x = objs[i].m_x + objs[i].m_w;
+//            }
+//        }
+
         if( (pl.m_x + pl.m_w > objs[i].m_x) && (objs[i].m_x + objs[i].m_w > pl.m_x) )
         {
             if(pl.m_y + pl.m_h == objs[i].m_y)
@@ -189,14 +256,14 @@ void MiniPhysics::processCollisions()
     tipc:
         if( pt(pl.m_x, pl.m_y, pl.m_w, pl.m_h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h))
         {
-            lk = pt(pl.m_x, pl.m_dy, pl.m_w, pl.m_h, objs[i].m_x, objs[i].m_y - objs[i].m_velY, objs[i].m_w, objs[i].m_h);
-            rk = pt(pl.m_dx, pl.m_y, pl.m_w, pl.m_h, objs[i].m_x - objs[i].m_velX, objs[i].m_y, objs[i].m_w, objs[i].m_h);
+            lk = pt(pl.m_x,     pl.m_oldy,  pl.m_w, pl.m_h,     objs[i].m_x,        objs[i].m_oldy/*objs[i].m_y - objs[i].m_velY*/,   objs[i].m_w, objs[i].m_h);
+            rk = pt(pl.m_oldx,  pl.m_y,     pl.m_w, pl.m_h,     objs[i].m_oldx/*objs[i].m_x - objs[i].m_velX*/,   objs[i].m_y,        objs[i].m_w, objs[i].m_h);
             if( lk ^ rk )
             {
                 if(!lk)
                 {
     tipa:
-                    if( pl.m_y + pl.m_h / 2 < objs[i].m_y + objs[i].m_h / 2 )
+                    if( ( pl.m_y + (pl.m_h / 2.0) ) < ( objs[i].m_y + (objs[i].m_h / 2.0) ) )
                     {
                         //'top
                         if( (objs[i].m_id == obj::SL_Rect) ||
@@ -206,7 +273,9 @@ void MiniPhysics::processCollisions()
     tipd:
                             pl.m_y = objs[i].m_y - pl.m_h;
                             pl.m_velY = objs[i].m_velY;
-                            pl.m_st = true;
+                            pl.m_stand = true;
+                            pl.m_velX = pl.m_velX_source + objs[i].m_velX;
+                            divSpeed += 1.0;
                             contactAt = obj::Contact_Top;
                         }
                     } else {
@@ -223,7 +292,7 @@ void MiniPhysics::processCollisions()
                     }
                 } else {
     tipb:
-                    if( pl.m_x + pl.m_w/2 < objs[i].m_x + objs[i].m_w/2 )
+                    if( ( pl.m_x + (pl.m_w/2.0) ) < ( objs[i].m_x + (objs[i].m_w/2.0) ) )
                     {
                         //'left
                         if( (objs[i].m_id == obj::SL_Rect) ||
@@ -232,6 +301,8 @@ void MiniPhysics::processCollisions()
                         {
                             pl.m_x = objs[i].m_x - pl.m_w;
                             pl.m_velX = objs[i].m_velX;
+                            pl.m_velX_source = objs[i].m_velX;
+                            divSpeed = 0.0;
                             contactAt = obj::Contact_Left;
                         }
                     } else {
@@ -242,6 +313,8 @@ void MiniPhysics::processCollisions()
                         {
                             pl.m_x = objs[i].m_x + objs[i].m_w;
                             pl.m_velX = objs[i].m_velX;
+                            pl.m_velX_source = objs[i].m_velX;
+                            divSpeed = 0.0;
                             contactAt = obj::Contact_Right;
                         }
                     }
@@ -250,7 +323,7 @@ void MiniPhysics::processCollisions()
     TipF:
                 if(contactAt == obj::Contact_None)
                 {
-                    k = objs[i].m_h / objs[i].m_w;
+                    k = objs[i].m_h/objs[i].m_w;
                     switch(objs[i].m_id)
                     {
                     case obj::SL_LeftBottom:
@@ -258,13 +331,15 @@ void MiniPhysics::processCollisions()
                         {
                             if( pl.m_y + pl.m_h > objs[i].m_y ) goto tipd;
                         }
-                        else if( pl.m_y + pl.m_h > objs[i].m_y + (pl.m_x - objs[i].m_x) * k )
+                        else if( pl.m_y + pl.m_h > objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k) )
                         {
-                            pl.m_y = objs[i].m_y + (pl.m_x - objs[i].m_x) * k - pl.m_h;
+                            pl.m_y = objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k ) - pl.m_h;
                             pl.m_velY = objs[i].m_velY;
                             if( pl.m_velX > 0)
                                 pl.m_velY = pl.m_velX * k;
-                            pl.m_st = true;
+                            pl.m_stand = true;
+                            pl.m_velX = pl.m_velX_source + objs[i].m_velX;
+                            divSpeed += 1.0;
                             contactAt = obj::Contact_Top;
                         }
                         break;
@@ -273,13 +348,15 @@ void MiniPhysics::processCollisions()
                         {
                             if(pl.m_y + pl.m_h > objs[i].m_y) goto tipd;
                         }
-                        else if(pl.m_y + pl.m_h > objs[i].m_y + (objs[i].m_x + objs[i].m_w - pl.m_x - pl.m_w) * k)
+                        else if(pl.m_y + pl.m_h > objs[i].m_y + ((objs[i].m_x + objs[i].m_w - pl.m_x - pl.m_w) * k) )
                         {
-                            pl.m_y = objs[i].m_y + (objs[i].m_x + objs[i].m_w - pl.m_x - pl.m_w) * k - pl.m_h;
+                            pl.m_y = objs[i].m_y + ( (objs[i].m_x + objs[i].m_w - pl.m_x - pl.m_w) * k) - pl.m_h;
                             pl.m_velY = objs[i].m_velY;
                             if(pl.m_velX < 0)
                                 pl.m_velY = -pl.m_velX * k;
-                            pl.m_st = true;
+                            pl.m_stand = true;
+                            pl.m_velX = pl.m_velX_source + objs[i].m_velX;
+                            divSpeed += 1.0;
                             contactAt = obj::Contact_Top;
                         }
                         break;
@@ -288,9 +365,9 @@ void MiniPhysics::processCollisions()
                         {
                             if(pl.m_y < objs[i].m_y + objs[i].m_h) goto tipe;
                         }
-                        else if(pl.m_y < objs[i].m_y + objs[i].m_h - (pl.m_x - objs[i].m_x) * k)
+                        else if(pl.m_y < objs[i].m_y + objs[i].m_h - ((pl.m_x - objs[i].m_x) * k) )
                         {
-                            pl.m_y = objs[i].m_y + objs[i].m_h - (pl.m_x - objs[i].m_x) * k;
+                            pl.m_y     = objs[i].m_y + objs[i].m_h - ((pl.m_x - objs[i].m_x) * k);
                             pl.m_velY = objs[i].m_velY;
                             contactAt = obj::Contact_Bottom;
                         }
@@ -300,9 +377,9 @@ void MiniPhysics::processCollisions()
                         {
                             if(pl.m_y < objs[i].m_y + objs[i].m_h) goto tipe;
                         }
-                        else if(pl.m_y < objs[i].m_y + objs[i].m_h - (objs[i].m_x + objs[i].m_w - pl.m_x - pl.m_w) * k)
+                        else if(pl.m_y < objs[i].m_y + objs[i].m_h - ((objs[i].m_x + objs[i].m_w - pl.m_x - pl.m_w) * k))
                         {
-                            pl.m_y = objs[i].m_y + objs[i].m_h - (objs[i].m_x + objs[i].m_w - pl.m_x - pl.m_w) * k;
+                            pl.m_y     = objs[i].m_y + objs[i].m_h - ((objs[i].m_x + objs[i].m_w - pl.m_x - pl.m_w) * k);
                             pl.m_velY = objs[i].m_velY;
                             contactAt = obj::Contact_Bottom;
                         }
@@ -334,6 +411,11 @@ void MiniPhysics::processCollisions()
             tm = -1;
             break;
         }
+
+        if( (objs[i].m_id == obj::SL_Rect) && recttouch(pl.m_x, pl.m_y, pl.m_w, pl.m_h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h) )
+        {
+            pl.m_squished = true;
+        }
     }
     if(tm >= 0)
     {
@@ -341,6 +423,10 @@ void MiniPhysics::processCollisions()
         td = 1;
         goto tipc;
     }
+
+    if(divSpeed > 1.0)
+        pl.m_velX /= divSpeed;
+
 }
 
 void MiniPhysics::loop()
@@ -370,9 +456,11 @@ void MiniPhysics::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
     p.fillRect(this->rect(), Qt::white);
-    p.setBrush(Qt::gray);
     p.setPen(QColor(Qt::black));
     for(int i=0; i<objs.size(); i++)
+    {
+        p.setBrush(Qt::gray);
         objs[i].paint(p);
+    }
     pl.paint(p);
 }
