@@ -52,7 +52,9 @@ public:
         m_velY(0.0),
         m_stand(false),
         m_squished(false),
-        drawSpeed(false)
+        drawSpeed(false),
+        m_bumped(false),
+        m_cliff(false)
     {}
     obj(const obj& o) :
         m_id(o.m_id),
@@ -67,14 +69,22 @@ public:
         m_velY(o.m_velY),
         m_stand(o.m_stand),
         m_squished(o.m_squished),
-        drawSpeed(o.drawSpeed)
+        drawSpeed(o.drawSpeed),
+        m_bumped(o.m_bumped),
+        m_cliff(o.m_cliff)
     {}
 
     void paint(QPainter &p)
     {
+        p.setBrush(Qt::gray);
         if(m_squished)
         {
             p.setBrush(Qt::red);
+        }
+
+        if(m_bumped)
+        {
+            p.setBrush(Qt::green);
         }
 
         QPolygonF poly;
@@ -110,6 +120,8 @@ public:
         }
         if(drawSpeed)
             p.drawText(m_x, m_y-10, QString("%1 %2").arg(m_velX, 7).arg(m_velY, 7) );
+        if(m_cliff)
+            p.drawText(m_x+m_w+20, m_y-10, "CLIFF!!!");
     }
     int     m_id;
     double  m_x;
@@ -124,6 +136,8 @@ public:
     bool    m_stand;
     bool    m_squished;
     bool    drawSpeed;
+    bool    m_bumped;
+    bool    m_cliff;
 };
 
 class MiniPhysics : public QOpenGLWidget

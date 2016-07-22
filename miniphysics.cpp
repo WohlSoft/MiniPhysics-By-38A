@@ -33,7 +33,7 @@ MiniPhysics::MiniPhysics(QWidget* parent):
     pl.m_oldy = pl.m_y;
     pl.m_w = 25;
     pl.m_h = 30;
-    pl.drawSpeed = true;
+    //pl.drawSpeed = true;
 
     for(int i=0; i<file.blocks.size(); i++)
     {
@@ -90,7 +90,7 @@ MiniPhysics::MiniPhysics(QWidget* parent):
         int lastID = objs.size()-1;
         obj &brick1 = objs[lastID];
         brick1.m_velX = 0.8;
-        brick1.drawSpeed = true;
+        //brick1.drawSpeed = true;
         obj &brick2 = objs[lastID-1];
         brick2.m_velY = 1.0;
         obj &brick3 = objs[lastID-2];
@@ -144,7 +144,7 @@ void MiniPhysics::iterateStep()
         brick3.m_x   += brick3.m_velX;
         brick3Passed += brick3.m_velX;
         //brick.y += brick.spy;
-        if(brick3Passed > 8.0*32.0 || brick3Passed < 0.0)
+        if(brick3Passed > 9.0*32.0 || brick3Passed < 0.0)
             brick3.m_velX *= -1.0;
 
         obj &brick4 = objs[lastID-3];
@@ -152,7 +152,7 @@ void MiniPhysics::iterateStep()
         brick4.m_x   += brick4.m_velX;
         brick4Passed += brick4.m_velX;
         //brick.y += brick.spy;
-        if(brick4Passed > 8.0*32.0 || brick4Passed < 0.0)
+        if(brick4Passed > 10.0*32.0 || brick4Passed < 0.0)
             brick4.m_velX *= -1.0;
     }
 
@@ -192,6 +192,8 @@ void MiniPhysics::iterateStep()
 
         pl.m_stand      = false;
         pl.m_squished   = false;
+        pl.m_cliff      = false;
+
         pl.m_oldx = pl.m_x;
         pl.m_oldy = pl.m_y;
         pl.m_x += pl.m_velX;
@@ -225,9 +227,14 @@ void MiniPhysics::processCollisions()
     //Return player to top back on fall down
     //if(pl.y > 8*32)
     //    pl.y = 64;
+    QVector<obj*> l_clifCheck;
+    QVector<obj*> l_toBump;
     double divSpeed = 0.0;
+    bool    doAlignY = false;
+    double  alignYto = pl.m_y;
     for(i=0; i<objs.size(); i++)
     {
+        objs[i].m_bumped = false;
         contactAt = obj::Contact_None;
 //        if( recttouch(pl.m_x, pl.m_y, pl.m_w, pl.m_h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h) )
 //        {
@@ -278,11 +285,12 @@ void MiniPhysics::processCollisions()
                         {
     tipd:
                             pl.m_y = objs[i].m_y - pl.m_h;
-                            pl.m_velY = objs[i].m_velY;
-                            pl.m_stand = true;
-                            pl.m_velX = pl.m_velX_source + objs[i].m_velX;
+                            pl.m_velY   = objs[i].m_velY;
+                            pl.m_stand  = true;
+                            pl.m_velX   = pl.m_velX_source + objs[i].m_velX;
                             divSpeed += 1.0;
                             contactAt = obj::Contact_Top;
+                            l_clifCheck.push_back( &objs[i] );
                         }
                     } else {
                         //'bottom
@@ -291,9 +299,11 @@ void MiniPhysics::processCollisions()
                             (objs[i].m_id == obj::SL_RightBottom) )
                         {
     tipe:
-                            pl.m_y = objs[i].m_y + objs[i].m_h;
+                            doAlignY = true;
+                            /*pl.m_y*/alignYto = objs[i].m_y + objs[i].m_h;
                             pl.m_velY = objs[i].m_velY;
                             contactAt = obj::Contact_Bottom;
+                            l_toBump.push_back( &objs[i] );
                         }
                     }
                 } else {
@@ -347,6 +357,7 @@ void MiniPhysics::processCollisions()
                             pl.m_velX = pl.m_velX_source + objs[i].m_velX;
                             divSpeed += 1.0;
                             contactAt = obj::Contact_Top;
+                            l_clifCheck.push_back( &objs[i] );
                         }
                         break;
                     case obj::SL_RightBottom:
@@ -364,6 +375,7 @@ void MiniPhysics::processCollisions()
                             pl.m_velX = pl.m_velX_source + objs[i].m_velX;
                             divSpeed += 1.0;
                             contactAt = obj::Contact_Top;
+                            l_clifCheck.push_back( &objs[i] );
                         }
                         break;
                     case obj::SL_LeftTop:
@@ -430,6 +442,55 @@ void MiniPhysics::processCollisions()
         goto tipc;
     }
 
+    if(doAlignY)
+        pl.m_y = alignYto;
+
+    /*
+if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
+    fabs(nearest->posRect.center().x()-posRect.center().x()) )
+*/
+
+#define centerOfObj(obj) (obj->m_x + obj->m_w / 2.0)
+#define centerOfObjR(obj) (obj.m_x + obj.m_w / 2.0)
+
+    //Hit a block
+    if(!l_toBump.isEmpty())
+    {
+        obj*candidate = l_toBump.first();
+        foreach(obj* x, l_toBump)
+        {
+            if(candidate == x)
+                continue;
+            if( fabs((x->m_x + x->m_w/2.0) - (pl.m_x + pl.m_w/2.0)) <
+                fabs((candidate->m_x + candidate->m_w/2.0) - (pl.m_x + pl.m_w/2.0)) )
+            {
+                candidate = x;
+            }
+        }
+        candidate->m_bumped = true;
+    }
+
+    //Detect a cliff
+    if(!l_clifCheck.isEmpty())
+    {
+        obj*candidate = l_clifCheck.first();
+        double lefter  = candidate->m_x;
+        double righter = candidate->m_x+candidate->m_w;
+        foreach(obj* x, l_clifCheck)
+        {
+            if(candidate == x)
+                continue;
+            if(x->m_x < lefter)
+                lefter = x->m_x;
+            if(x->m_x+x->m_w > righter)
+                lefter = x->m_x + x->m_w;
+        }
+        if((pl.m_velX_source <= 0.0) && (lefter > pl.m_x + pl.m_w / 2.0) )
+            pl.m_cliff = true;
+        if((pl.m_velX_source >= 0.0) && (righter < pl.m_x + pl.m_w / 2.0) )
+            pl.m_cliff = true;
+    }
+
     if(divSpeed > 1.0)
         pl.m_velX /= divSpeed;
 
@@ -465,7 +526,6 @@ void MiniPhysics::paintEvent(QPaintEvent *)
     p.setPen(QColor(Qt::black));
     for(int i=0; i<objs.size(); i++)
     {
-        p.setBrush(Qt::gray);
         objs[i].paint(p);
     }
     pl.paint(p);
