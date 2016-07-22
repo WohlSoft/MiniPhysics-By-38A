@@ -3,6 +3,7 @@
 #include <QKeyEvent>
 #include <QMessageBox>
 #include <QApplication>
+#include <QFile>
 
 #include "PGE_File_Formats/file_formats.h"
 
@@ -14,10 +15,15 @@ MiniPhysics::MiniPhysics(QWidget* parent):
     keyMap[Qt::Key_Space] = false;
 
     LevelData file;
-    if( !FileFormats::OpenLevelFile(QApplication::applicationDirPath()+"/test.lvlx", file) )
     {
-        QMessageBox::critical(nullptr, "SHIT", file.meta.ERROR_info);
-        return;
+        QFile physFile(":/test.lvlx");
+        physFile.open(QIODevice::ReadOnly);
+        QString rawdata = QString::fromUtf8(physFile.readAll());
+        if( !FileFormats::ReadExtendedLvlFileRaw(rawdata, ".", file) )
+        {
+            QMessageBox::critical(nullptr, "SHIT", file.meta.ERROR_info);
+            return;
+        }
     }
 
     pl.m_id = obj::SL_Rect;

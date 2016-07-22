@@ -70,3 +70,6 @@ DISTFILES += \
     PGE_File_Formats/LICENSE \
     PGE_File_Formats/Readme.txt \
     PGE_File_Formats/README.md
+
+RESOURCES += \
+    res.qrc
