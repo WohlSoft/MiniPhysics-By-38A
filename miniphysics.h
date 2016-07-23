@@ -51,7 +51,8 @@ public:
         m_velX_source(0.0),
         m_velY(0.0),
         m_stand(false),
-        m_squished(false),
+        m_crushed(false),
+        m_crushedOld(false),
         drawSpeed(false),
         m_bumped(false),
         m_cliff(false)
@@ -68,7 +69,8 @@ public:
         m_velX_source(o.m_velX_source),
         m_velY(o.m_velY),
         m_stand(o.m_stand),
-        m_squished(o.m_squished),
+        m_crushed(o.m_crushed),
+        m_crushedOld(o.m_crushedOld),
         drawSpeed(o.drawSpeed),
         m_bumped(o.m_bumped),
         m_cliff(o.m_cliff)
@@ -77,7 +79,7 @@ public:
     void paint(QPainter &p)
     {
         p.setBrush(Qt::gray);
-        if(m_squished)
+        if(m_crushed && m_crushedOld)
         {
             p.setBrush(Qt::red);
         }
@@ -122,6 +124,8 @@ public:
             p.drawText(m_x, m_y-10, QString("%1 %2").arg(m_velX, 7).arg(m_velY, 7) );
         if(m_cliff)
             p.drawText(m_x+m_w+20, m_y-10, "CLIFF!!!");
+        if(m_stand)
+            p.drawText(m_x+m_w+10, m_y, "[G]");
     }
     int     m_id;
     double  m_x;
@@ -134,7 +138,8 @@ public:
     double  m_velX_source;
     double  m_velY;
     bool    m_stand;
-    bool    m_squished;
+    bool    m_crushed;
+    bool    m_crushedOld;
     bool    drawSpeed;
     bool    m_bumped;
     bool    m_cliff;
