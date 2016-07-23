@@ -51,6 +51,8 @@ MiniPhysics::MiniPhysics(QWidget* parent):
         box.m_w = blk.w;
         box.m_h = blk.h;
         objs.push_back(box);
+        if(blk.id == 159)
+            movingBlock.push_back(&objs.last());
     }
     /*
     objs.push_back(obj(7,   6, obj::SL_RightBottom));
@@ -87,15 +89,15 @@ MiniPhysics::MiniPhysics(QWidget* parent):
     //objs.push_back(obj(3, 4, obj::SL_RIGHT_TOP));
     */
     {
-        int lastID = objs.size()-1;
-        obj &brick1 = objs[lastID];
+        int lastID = movingBlock.size()-1;
+        obj &brick1 = *movingBlock[lastID];
         brick1.m_velX = 0.8;
         //brick1.drawSpeed = true;
-        obj &brick2 = objs[lastID-1];
+        obj &brick2 = *movingBlock[lastID-1];
         brick2.m_velY = 1.0;
-        obj &brick3 = objs[lastID-2];
+        obj &brick3 = *movingBlock[lastID-2];
         brick3.m_velX = 0.8;
-        obj &brick4 = objs[lastID-3];
+        obj &brick4 = *movingBlock[lastID-3];
         brick4.m_velX = 1.6;
     }
 
@@ -119,8 +121,8 @@ void MiniPhysics::iterateStep()
         static double brick3Passed = 0.0;
         static double brick4Passed = 0.0;
 
-        int lastID = objs.size()-1;
-        obj &brick1 = objs[lastID];
+        int lastID = movingBlock.size()-1;
+        obj &brick1 = *movingBlock[lastID];
 
         brick1.m_oldx = brick1.m_x;
         brick1.m_oldy = brick1.m_y;
@@ -131,7 +133,7 @@ void MiniPhysics::iterateStep()
         brick1.m_velY = cos(brick1Passed)*2.0;
         brick1Passed += 0.07;
 
-        obj &brick2 = objs[lastID-1];
+        obj &brick2 = *movingBlock[lastID-1];
         brick2.m_oldy = brick2.m_y;
         brick2.m_y   += brick2.m_velY;
         brick2Passed += brick2.m_velY;
@@ -139,7 +141,7 @@ void MiniPhysics::iterateStep()
         if(brick2Passed > 8.0*32.0 || brick2Passed < 0.0)
             brick2.m_velY *= -1.0;
 
-        obj &brick3 = objs[lastID-2];
+        obj &brick3 = *movingBlock[lastID-2];
         brick3.m_oldx = brick3.m_x;
         brick3.m_x   += brick3.m_velX;
         brick3Passed += brick3.m_velX;
@@ -147,7 +149,7 @@ void MiniPhysics::iterateStep()
         if(brick3Passed > 9.0*32.0 || brick3Passed < 0.0)
             brick3.m_velX *= -1.0;
 
-        obj &brick4 = objs[lastID-3];
+        obj &brick4 = *movingBlock[lastID-3];
         brick4.m_oldx = brick4.m_x;
         brick4.m_x   += brick4.m_velX;
         brick4Passed += brick4.m_velX;
@@ -233,8 +235,7 @@ void MiniPhysics::processCollisions()
     QVector<obj*> l_clifCheck;
     QVector<obj*> l_toBump;
     double divSpeed = 0.0;
-    //bool    doAlignY = false;
-    //double  alignYto = pl.m_y;
+
     for(i=0; i<objs.size(); i++)
     {
         objs[i].m_bumped = false;
@@ -242,17 +243,10 @@ void MiniPhysics::processCollisions()
         /* ********************Collect blocks to hit************************ */
         if( recttouch(pl.m_x, pl.m_y-1, pl.m_w, pl.m_h+2, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h) )
         {
-            //pl.m_squished = true;
-//            if(!recttouch2(pl.m_x-1, pl.m_oldy-1, pl.m_w+2, pl.m_h+2, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h ) )
-//            {
-
-//            }
             if(pl.m_y + pl.m_h/2.0 < objs[i].m_y+objs[i].m_h/2.0)
             {
-                //pl.m_y = objs[i].m_y - pl.m_h;
                 l_clifCheck.push_back(&objs[i]);
             } else {
-                //pl.m_y = objs[i].m_y + objs[i].m_h;
                 l_toBump.push_back(&objs[i]);
             }
         }
@@ -345,7 +339,7 @@ void MiniPhysics::processCollisions()
                         {
                             if( pl.m_y + pl.m_h > objs[i].m_y ) goto tipd;
                         }
-                        else if( pl.m_y + pl.m_h > objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k) )
+                        else if( pl.m_y + pl.m_h > objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k) - 1 )
                         {
                             pl.m_y = objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k ) - pl.m_h;
                             pl.m_velY = objs[i].m_velY;
@@ -363,7 +357,7 @@ void MiniPhysics::processCollisions()
                         {
                             if(pl.m_y + pl.m_h > objs[i].m_y) goto tipd;
                         }
-                        else if(pl.m_y + pl.m_h > objs[i].m_y + ((objs[i].m_x + objs[i].m_w - pl.m_x - pl.m_w) * k) )
+                        else if(pl.m_y + pl.m_h > objs[i].m_y + ((objs[i].m_x + objs[i].m_w - pl.m_x - pl.m_w) * k) - 1 )
                         {
                             pl.m_y = objs[i].m_y + ( (objs[i].m_x + objs[i].m_w - pl.m_x - pl.m_w) * k) - pl.m_h;
                             pl.m_velY = objs[i].m_velY;

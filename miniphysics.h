@@ -160,7 +160,8 @@ protected:
     void paintEvent(QPaintEvent *e);
 private:
     QHash<int, bool> keyMap;
-    QList<obj> objs;
+    QList<obj>  objs;
+    QList<obj*> movingBlock;
     obj     pl;
     QTimer looper;
     QOpenGLFunctions *f;
