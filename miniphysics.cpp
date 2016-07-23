@@ -217,12 +217,6 @@ static inline bool recttouch(double X,  double Y,   double w,   double h,
     return ( (X + w > x2) && (x2 + w2 > X) && (Y + h > y2) && (y2 + h2 > Y));
 }
 
-static inline bool recttouch2(double X,  double Y,   double w,   double h,
-                              double x2, double y2,  double w2,  double h2)
-{
-    return ( (X + w >= x2) && (x2 + w2 >= X) && (Y + h >= y2) && (y2 + h2 >= Y));
-}
-
 void MiniPhysics::processCollisions()
 {
     double k = 0;
