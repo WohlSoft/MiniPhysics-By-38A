@@ -82,7 +82,7 @@ template <typename T> int sgn(T val) {
 
 void MiniPhysics::iterateStep()
 {
-    bool lk, rk;
+    bool lk=false, rk=false;
     {
         static double brick1Passed = 0.0;
         static double brick2Passed = 0.0;
@@ -191,7 +191,7 @@ void MiniPhysics::processCollisions()
 {
     double k = 0;
     int i=0, contactAt=obj::Contact_None, /*ck=0,*/ tm=0, td=0;
-    bool lk, rk;
+    bool colH=false, colV=false;
     tm = -1;
     td = 0;
 
@@ -229,11 +229,11 @@ void MiniPhysics::processCollisions()
     tipc:
         if( pt(pl.m_x, pl.m_y, pl.m_w, pl.m_h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h))
         {
-            lk = pt(pl.m_x,     pl.m_oldy,  pl.m_w, pl.m_h,     objs[i].m_x,    objs[i].m_oldy, objs[i].m_w, objs[i].m_h);
-            rk = pt(pl.m_oldx,  pl.m_y,     pl.m_w, pl.m_h,     objs[i].m_oldx, objs[i].m_y,    objs[i].m_w, objs[i].m_h);
-            if( lk ^ rk )
+            colH = pt(pl.m_x,     pl.m_oldy,  pl.m_w, pl.m_h,     objs[i].m_x,    objs[i].m_oldy, objs[i].m_w, objs[i].m_h);
+            colV = pt(pl.m_oldx,  pl.m_y,     pl.m_w, pl.m_h,     objs[i].m_oldx, objs[i].m_y,    objs[i].m_w, objs[i].m_h);
+            if( colH ^ colV )
             {
-                if(!lk)
+                if(!colH)
                 {
     tipa:
                     if( pl.centerY() < objs[i].centerY() )
@@ -313,7 +313,7 @@ void MiniPhysics::processCollisions()
                         }
                         else if( ( pl.bottom() > objs[i].bottom() ) )
                         {
-                            if(!lk)
+                            if(!colH)
                             {
                                 if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
                                     goto tipe;
@@ -347,7 +347,7 @@ void MiniPhysics::processCollisions()
                         }
                         else if( ( pl.bottom() > objs[i].bottom() ) )
                         {
-                            if(!lk)
+                            if(!colH)
                             {
                                 if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
                                     goto tipe;
@@ -381,7 +381,7 @@ void MiniPhysics::processCollisions()
                         }
                         else if( ( pl.top() < objs[i].top() ) )
                         {
-                            if(!lk)
+                            if(!colH)
                             {
                                 if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
                                     goto tipd;
@@ -410,7 +410,7 @@ void MiniPhysics::processCollisions()
                         }
                         else if( ( pl.top() < objs[i].top() ) )
                         {
-                            if(!lk)
+                            if(!colH)
                             {
                                 if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
                                     goto tipd;
@@ -436,7 +436,7 @@ void MiniPhysics::processCollisions()
             } else {
                 if( objs[i].m_id != obj::SL_Rect )
                     goto TipF;
-                if( !lk && !rk )
+                if( !colH && !colV )
                 {
                     if(tm == i)
                     {
