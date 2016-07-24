@@ -54,40 +54,8 @@ MiniPhysics::MiniPhysics(QWidget* parent):
         if(blk.id == 159)
             movingBlock.push_back(&objs.last());
     }
-    /*
-    objs.push_back(obj(7,   6, obj::SL_RightBottom));
-    objs.push_back(obj(8,   5, obj::SL_RightBottom));
-    objs.push_back(obj(1,   5, obj::SL_LeftBottom));
-    objs.push_back(obj(2,   6, obj::SL_LeftBottom));
-    objs.push_back(obj(1,   2, obj::SL_LeftTop));
-    objs.push_back(obj(2,   1, obj::SL_LeftTop));
-    objs.push_back(obj(7,   1, obj::SL_RightTop));
-    objs.push_back(obj(8,   2, obj::SL_RightTop));
-    objs.push_back(obj(2,   0, obj::SL_Rect));
-    objs.push_back(obj(3,   0, obj::SL_Rect));
-    objs.push_back(obj(4,   0, obj::SL_Rect));
-    objs.push_back(obj(6,   0, obj::SL_Rect));
-    objs.push_back(obj(2,   7, obj::SL_Rect));
-    objs.push_back(obj(3,   7, obj::SL_Rect));
-    objs.push_back(obj(4,   7, obj::SL_Rect));
-    objs.push_back(obj(6,   7, obj::SL_Rect));
-    objs.push_back(obj(0,   2, obj::SL_Rect));
-    objs.push_back(obj(0,   3, obj::SL_Rect));
-    objs.push_back(obj(0,   4, obj::SL_Rect));
-    objs.push_back(obj(0,   5, obj::SL_Rect));
-    objs.push_back(obj(9,   2, obj::SL_Rect));
-    objs.push_back(obj(10,  3, obj::SL_Rect));
-    objs.push_back(obj(10,  4, obj::SL_Rect));
-    objs.push_back(obj(9,   5, obj::SL_Rect));
-    objs.push_back(obj(1,   1, obj::SL_Rect));
-    objs.push_back(obj(1,   6, obj::SL_Rect));
-    objs.push_back(obj(8,   1, obj::SL_Rect));
-    objs.push_back(obj(8,   6, obj::SL_Rect));
 
-    objs.push_back(obj(4, 4, obj::SL_Rect));
-    //objs.push_back(obj(2, 5, obj::SL_RIGHT_TOP));
-    //objs.push_back(obj(3, 4, obj::SL_RIGHT_TOP));
-    */
+
     {
         int lastID = movingBlock.size()-1;
         obj &brick1 = *movingBlock[lastID];
@@ -228,8 +196,8 @@ void MiniPhysics::processCollisions()
     td = 0;
 
     //Return player to top back on fall down
-    //if(pl.y > 8*32)
-    //    pl.y = 64;
+    if(pl.m_y > this->height())
+        pl.m_y = 64;
     bool doHit = false;
     bool doCliffCheck = false;
     QVector<obj*> l_clifCheck;
@@ -261,14 +229,14 @@ void MiniPhysics::processCollisions()
     tipc:
         if( pt(pl.m_x, pl.m_y, pl.m_w, pl.m_h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h))
         {
-            lk = pt(pl.m_x,     pl.m_oldy,  pl.m_w, pl.m_h,     objs[i].m_x,        objs[i].m_oldy/*objs[i].m_y - objs[i].m_velY*/,   objs[i].m_w, objs[i].m_h);
-            rk = pt(pl.m_oldx,  pl.m_y,     pl.m_w, pl.m_h,     objs[i].m_oldx/*objs[i].m_x - objs[i].m_velX*/,   objs[i].m_y,        objs[i].m_w, objs[i].m_h);
+            lk = pt(pl.m_x,     pl.m_oldy,  pl.m_w, pl.m_h,     objs[i].m_x,    objs[i].m_oldy, objs[i].m_w, objs[i].m_h);
+            rk = pt(pl.m_oldx,  pl.m_y,     pl.m_w, pl.m_h,     objs[i].m_oldx, objs[i].m_y,    objs[i].m_w, objs[i].m_h);
             if( lk ^ rk )
             {
                 if(!lk)
                 {
     tipa:
-                    if( ( pl.m_y + (pl.m_h / 2.0) ) < ( objs[i].m_y + (objs[i].m_h / 2.0) ) )
+                    if( pl.centerY() < objs[i].centerY() )
                     {
                         //'top
                         if( (objs[i].m_id == obj::SL_Rect) ||
@@ -291,8 +259,7 @@ void MiniPhysics::processCollisions()
                             (objs[i].m_id == obj::SL_RightBottom) )
                         {
     tipe:
-                            //doAlignY = true;
-                            pl.m_y/*alignYto*/ = objs[i].m_y + objs[i].m_h;
+                            pl.m_y = objs[i].m_y + objs[i].m_h;
                             pl.m_velY = objs[i].m_velY;
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
@@ -300,13 +267,14 @@ void MiniPhysics::processCollisions()
                     }
                 } else {
     tipb:
-                    if( ( pl.m_x + (pl.m_w/2.0) ) < ( objs[i].m_x + (objs[i].m_w/2.0) ) )
+                    if( pl.centerX() < objs[i].centerX() )
                     {
                         //'left
                         if( (objs[i].m_id == obj::SL_Rect) ||
                             (objs[i].m_id == obj::SL_LeftBottom)||
                             (objs[i].m_id == obj::SL_LeftTop) )
                         {
+                tipbL:
                             pl.m_x = objs[i].m_x - pl.m_w;
                             pl.m_velX = objs[i].m_velX;
                             pl.m_velX_source = objs[i].m_velX;
@@ -319,6 +287,7 @@ void MiniPhysics::processCollisions()
                             (objs[i].m_id == obj::SL_RightBottom) ||
                             (objs[i].m_id == obj::SL_RightTop) )
                         {
+                tipbR:
                             pl.m_x = objs[i].m_x + objs[i].m_w;
                             pl.m_velX = objs[i].m_velX;
                             pl.m_velX_source = objs[i].m_velX;
@@ -331,15 +300,31 @@ void MiniPhysics::processCollisions()
     TipF:
                 if(contactAt == obj::Contact_None)
                 {
-                    k = objs[i].m_h/objs[i].m_w;
+                    k = objs[i].m_h / objs[i].m_w;
                     switch(objs[i].m_id)
                     {
                     case obj::SL_LeftBottom:
-                        if(pl.m_x <= objs[i].m_x)
+                        if( (pl.left() <= objs[i].left()) )
                         {
-                            if( pl.m_y + pl.m_h > objs[i].m_y ) goto tipd;
+                            if( pl.bottom() > objs[i].bottom())
+                                goto tipe;
+                            if( pl.bottom() > objs[i].top() )
+                                goto tipd;
                         }
-                        else if( pl.m_y + pl.m_h > objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k) - 1 )
+                        else if( ( pl.bottom() > objs[i].bottom() ) )
+                        {
+                            if(!lk)
+                            {
+                                if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
+                                    goto tipe;
+                            } else {
+                                if( pl.centerX() < objs[i].centerX() )
+                                    goto tipbL;
+                                else
+                                    goto tipbR;
+                            }
+                        }
+                        else if( pl.bottom() > objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k) - 1 )
                         {
                             pl.m_y = objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k ) - pl.m_h;
                             pl.m_velY = objs[i].m_velY;
@@ -353,13 +338,29 @@ void MiniPhysics::processCollisions()
                         }
                         break;
                     case obj::SL_RightBottom:
-                        if( pl.m_x + pl.m_w >= objs[i].m_x + objs[i].m_w)
+                        if( pl.right() >= objs[i].right())
                         {
-                            if(pl.m_y + pl.m_h > objs[i].m_y) goto tipd;
+                            if( pl.bottom() > objs[i].bottom())
+                                goto tipe;
+                            if(pl.bottom() > objs[i].top())
+                                goto tipd;
                         }
-                        else if(pl.m_y + pl.m_h > objs[i].m_y + ((objs[i].m_x + objs[i].m_w - pl.m_x - pl.m_w) * k) - 1 )
+                        else if( ( pl.bottom() > objs[i].bottom() ) )
                         {
-                            pl.m_y = objs[i].m_y + ( (objs[i].m_x + objs[i].m_w - pl.m_x - pl.m_w) * k) - pl.m_h;
+                            if(!lk)
+                            {
+                                if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
+                                    goto tipe;
+                            } else {
+                                if( pl.centerX() < objs[i].centerX() )
+                                    goto tipbL;
+                                else
+                                    goto tipbR;
+                            }
+                        }
+                        else if(pl.bottom() > objs[i].m_y + ((objs[i].right() - pl.m_x - pl.m_w) * k) - 1 )
+                        {
+                            pl.m_y = objs[i].m_y + ( (objs[i].right() - pl.m_x - pl.m_w) * k) - pl.m_h;
                             pl.m_velY = objs[i].m_velY;
                             if(pl.m_velX < 0)
                                 pl.m_velY = -pl.m_velX * k;
@@ -371,26 +372,58 @@ void MiniPhysics::processCollisions()
                         }
                         break;
                     case obj::SL_LeftTop:
-                        if(pl.m_x <= objs[i].m_x)
+                        if( pl.m_x <= objs[i].m_x )
                         {
-                            if(pl.m_y < objs[i].m_y + objs[i].m_h) goto tipe;
+                            if( pl.top() < objs[i].top())
+                                goto tipd;
+                            if(pl.top() < objs[i].bottom())
+                                goto tipe;
                         }
-                        else if(pl.m_y < objs[i].m_y + objs[i].m_h - ((pl.m_x - objs[i].m_x) * k) )
+                        else if( ( pl.top() < objs[i].top() ) )
                         {
-                            pl.m_y     = objs[i].m_y + objs[i].m_h - ((pl.m_x - objs[i].m_x) * k);
+                            if(!lk)
+                            {
+                                if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
+                                    goto tipd;
+                            } else {
+                                if( pl.centerX() < objs[i].centerX() )
+                                    goto tipbL;
+                                else
+                                    goto tipbR;
+                            }
+                        }
+                        else if(pl.m_y < objs[i].bottom() - ((pl.m_x - objs[i].m_x) * k) )
+                        {
+                            pl.m_y     = objs[i].bottom() - ((pl.m_x - objs[i].m_x) * k);
                             pl.m_velY = objs[i].m_velY;
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
                         }
                         break;
                     case obj::SL_RightTop:
-                        if(pl.m_x + pl.m_w >= objs[i].m_x + objs[i].m_w)
+                        if(pl.right() >= objs[i].right())
                         {
-                            if(pl.m_y < objs[i].m_y + objs[i].m_h) goto tipe;
+                            if( pl.top() < objs[i].top())
+                                goto tipd;
+                            if(pl.m_y < objs[i].bottom())
+                                goto tipe;
                         }
-                        else if(pl.m_y < objs[i].m_y + objs[i].m_h - ((objs[i].m_x + objs[i].m_w - pl.m_x - pl.m_w) * k))
+                        else if( ( pl.top() < objs[i].top() ) )
                         {
-                            pl.m_y     = objs[i].m_y + objs[i].m_h - ((objs[i].m_x + objs[i].m_w - pl.m_x - pl.m_w) * k);
+                            if(!lk)
+                            {
+                                if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
+                                    goto tipd;
+                            } else {
+                                if( pl.centerX() < objs[i].centerX() )
+                                    goto tipbL;
+                                else
+                                    goto tipbR;
+                            }
+                        }
+                        else if(pl.m_y < objs[i].bottom() - ((objs[i].right() - pl.m_x - pl.m_w) * k))
+                        {
+                            pl.m_y    = objs[i].bottom() - ((objs[i].right() - pl.m_x - pl.m_w) * k);
                             pl.m_velY = objs[i].m_velY;
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
@@ -446,8 +479,8 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
     fabs(nearest->posRect.center().x()-posRect.center().x()) )
 */
 
-#define centerOfObj(obj) (obj->m_x + obj->m_w / 2.0)
-#define centerOfObjR(obj) (obj.m_x + obj.m_w / 2.0)
+//#define centerOfObj(obj) (obj->m_x + obj->m_w / 2.0)
+//#define centerOfObjR(obj) (obj.m_x + obj.m_w / 2.0)
 
     //Hit a block
     if(doHit && !l_toBump.isEmpty())
@@ -457,8 +490,8 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
         {
             if(candidate == x)
                 continue;
-            if( fabs((x->m_x + x->m_w/2.0) - (pl.m_x + pl.m_w/2.0)) <
-                fabs((candidate->m_x + candidate->m_w/2.0) - (pl.m_x + pl.m_w/2.0)) )
+            if( fabs(x->centerX() - pl.centerX()) <
+                fabs(candidate->centerX() - pl.centerX()) )
             {
                 candidate = x;
             }
@@ -481,9 +514,9 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
             if(x->m_x+x->m_w > righter)
                 righter = x->m_x + x->m_w;
         }
-        if((pl.m_velX_source <= 0.0) && (lefter > pl.m_x + pl.m_w / 2.0) )
+        if((pl.m_velX_source <= 0.0) && (lefter > pl.centerX()) )
             pl.m_cliff = true;
-        if((pl.m_velX_source >= 0.0) && (righter < pl.m_x + pl.m_w / 2.0) )
+        if((pl.m_velX_source >= 0.0) && (righter < pl.centerX()) )
             pl.m_cliff = true;
     }
 

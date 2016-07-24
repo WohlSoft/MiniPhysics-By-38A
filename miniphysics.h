@@ -128,6 +128,16 @@ public:
             p.drawText(m_x+m_w+10, m_y, "[G]");
     }
     int     m_id;
+    inline  double x()      { return m_x; }
+    inline  double y()      { return m_y; }
+    inline  double top()    { return m_y; }
+    inline  double left()   { return m_x; }
+    inline  double right()  { return m_x + m_w; }
+    inline  double bottom() { return m_y + m_h; }
+    inline  double centerX() { return m_x + m_w/2.0; }
+    inline  double centerY() { return m_y + m_h/2.0; }
+    inline  bool   betweenH(double X) { return (X >= m_x) && (X <= m_x+m_w); }
+    inline  bool   betweenV(double Y) { return (Y >= m_y) && (Y <= m_y+m_h); }
     double  m_x;
     double  m_y;
     double  m_oldx;
