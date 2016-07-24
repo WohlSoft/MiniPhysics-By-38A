@@ -434,8 +434,10 @@ void MiniPhysics::processCollisions()
                     }
                 }
             } else {
+                //If shape is not rectangle - check triangular collision
                 if( objs[i].m_id != obj::SL_Rect )
                     goto tipTriangleShape;
+                //Catching 90-degree angle impacts of corners with rectangles
                 if( !colH && !colV )
                 {
                     if(tm == i)
