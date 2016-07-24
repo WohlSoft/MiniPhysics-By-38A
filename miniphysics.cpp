@@ -31,8 +31,8 @@ MiniPhysics::MiniPhysics(QWidget* parent):
     pl.m_y = file.players[0].y;
     pl.m_oldx = pl.m_x;
     pl.m_oldy = pl.m_y;
-    pl.m_w = 25;
-    pl.m_h = 30;
+    pl.m_w = 32;
+    pl.m_h = 32;
     //pl.drawSpeed = true;
 
     for(int i=0; i<file.blocks.size(); i++)
@@ -223,10 +223,10 @@ void MiniPhysics::processCollisions()
         if( (pl.m_x + pl.m_w > objs[i].m_x) && (objs[i].m_x + objs[i].m_w > pl.m_x) )
         {
             if(pl.m_y + pl.m_h == objs[i].m_y)
-                goto tipa;
+                goto tipRectV;
         }
 
-    tipc:
+    tipRectShape://Recheck rectangular collision
         if( pt(pl.m_x, pl.m_y, pl.m_w, pl.m_h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h))
         {
             colH = pt(pl.m_x,     pl.m_oldy,  pl.m_w, pl.m_h,     objs[i].m_x,    objs[i].m_oldy, objs[i].m_w, objs[i].m_h);
@@ -235,7 +235,7 @@ void MiniPhysics::processCollisions()
             {
                 if(!colH)
                 {
-    tipa:
+                tipRectV://Check vertical sides colllisions
                     if( pl.centerY() < objs[i].centerY() )
                     {
                         //'top
@@ -243,7 +243,7 @@ void MiniPhysics::processCollisions()
                             (objs[i].m_id == obj::SL_LeftTop) ||
                             (objs[i].m_id == obj::SL_RightTop))
                         {
-    tipd:
+                    tipRectT://Impacted at top
                             pl.m_y = objs[i].m_y - pl.m_h;
                             pl.m_velY   = objs[i].m_velY;
                             pl.m_stand  = true;
@@ -258,7 +258,7 @@ void MiniPhysics::processCollisions()
                             (objs[i].m_id == obj::SL_LeftBottom) ||
                             (objs[i].m_id == obj::SL_RightBottom) )
                         {
-    tipe:
+                    tipRectB://Impacted at bottom
                             pl.m_y = objs[i].m_y + objs[i].m_h;
                             pl.m_velY = objs[i].m_velY;
                             contactAt = obj::Contact_Bottom;
@@ -266,7 +266,7 @@ void MiniPhysics::processCollisions()
                         }
                     }
                 } else {
-    tipb:
+                tipRectH://Check horisontal sides collision
                     if( pl.centerX() < objs[i].centerX() )
                     {
                         //'left
@@ -274,7 +274,7 @@ void MiniPhysics::processCollisions()
                             (objs[i].m_id == obj::SL_LeftBottom)||
                             (objs[i].m_id == obj::SL_LeftTop) )
                         {
-                tipbL:
+                    tipRectL://Impacted at left
                             pl.m_x = objs[i].m_x - pl.m_w;
                             pl.m_velX = objs[i].m_velX;
                             pl.m_velX_source = objs[i].m_velX;
@@ -287,7 +287,7 @@ void MiniPhysics::processCollisions()
                             (objs[i].m_id == obj::SL_RightBottom) ||
                             (objs[i].m_id == obj::SL_RightTop) )
                         {
-                tipbR:
+                    tipRectR://Impacted at right
                             pl.m_x = objs[i].m_x + objs[i].m_w;
                             pl.m_velX = objs[i].m_velX;
                             pl.m_velX_source = objs[i].m_velX;
@@ -297,7 +297,7 @@ void MiniPhysics::processCollisions()
                     }
                 }
                 tm = -2;
-    TipF:
+        tipTriangleShape://Check triangular collision
                 if(contactAt == obj::Contact_None)
                 {
                     k = objs[i].m_h / objs[i].m_w;
@@ -307,21 +307,21 @@ void MiniPhysics::processCollisions()
                         if( (pl.left() <= objs[i].left()) )
                         {
                             if( pl.bottom() > objs[i].bottom())
-                                goto tipe;
+                                goto tipRectB;
                             if( pl.bottom() > objs[i].top() )
-                                goto tipd;
+                                goto tipRectT;
                         }
                         else if( ( pl.bottom() > objs[i].bottom() ) )
                         {
                             if(!colH)
                             {
                                 if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
-                                    goto tipe;
+                                    goto tipRectB;
                             } else {
                                 if( pl.centerX() < objs[i].centerX() )
-                                    goto tipbL;
+                                    goto tipRectL;
                                 else
-                                    goto tipbR;
+                                    goto tipRectR;
                             }
                         }
                         else if( pl.bottom() > objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k) - 1 )
@@ -341,21 +341,21 @@ void MiniPhysics::processCollisions()
                         if( pl.right() >= objs[i].right())
                         {
                             if( pl.bottom() > objs[i].bottom())
-                                goto tipe;
+                                goto tipRectB;
                             if(pl.bottom() > objs[i].top())
-                                goto tipd;
+                                goto tipRectT;
                         }
                         else if( ( pl.bottom() > objs[i].bottom() ) )
                         {
                             if(!colH)
                             {
                                 if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
-                                    goto tipe;
+                                    goto tipRectB;
                             } else {
                                 if( pl.centerX() < objs[i].centerX() )
-                                    goto tipbL;
+                                    goto tipRectL;
                                 else
-                                    goto tipbR;
+                                    goto tipRectR;
                             }
                         }
                         else if(pl.bottom() > objs[i].m_y + ((objs[i].right() - pl.m_x - pl.m_w) * k) - 1 )
@@ -375,21 +375,21 @@ void MiniPhysics::processCollisions()
                         if( pl.m_x <= objs[i].m_x )
                         {
                             if( pl.top() < objs[i].top())
-                                goto tipd;
+                                goto tipRectT;
                             if(pl.top() < objs[i].bottom())
-                                goto tipe;
+                                goto tipRectB;
                         }
                         else if( ( pl.top() < objs[i].top() ) )
                         {
                             if(!colH)
                             {
                                 if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
-                                    goto tipd;
+                                    goto tipRectT;
                             } else {
                                 if( pl.centerX() < objs[i].centerX() )
-                                    goto tipbL;
+                                    goto tipRectL;
                                 else
-                                    goto tipbR;
+                                    goto tipRectR;
                             }
                         }
                         else if(pl.m_y < objs[i].bottom() - ((pl.m_x - objs[i].m_x) * k) )
@@ -404,21 +404,21 @@ void MiniPhysics::processCollisions()
                         if(pl.right() >= objs[i].right())
                         {
                             if( pl.top() < objs[i].top())
-                                goto tipd;
+                                goto tipRectT;
                             if(pl.m_y < objs[i].bottom())
-                                goto tipe;
+                                goto tipRectB;
                         }
                         else if( ( pl.top() < objs[i].top() ) )
                         {
                             if(!colH)
                             {
                                 if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
-                                    goto tipd;
+                                    goto tipRectT;
                             } else {
                                 if( pl.centerX() < objs[i].centerX() )
-                                    goto tipbL;
+                                    goto tipRectL;
                                 else
-                                    goto tipbR;
+                                    goto tipRectR;
                             }
                         }
                         else if(pl.m_y < objs[i].bottom() - ((objs[i].right() - pl.m_x - pl.m_w) * k))
@@ -435,15 +435,15 @@ void MiniPhysics::processCollisions()
                 }
             } else {
                 if( objs[i].m_id != obj::SL_Rect )
-                    goto TipF;
+                    goto tipTriangleShape;
                 if( !colH && !colV )
                 {
                     if(tm == i)
                     {
                         if( fabs(pl.m_velY) > fabs(pl.m_velX) )
-                            goto tipa;
+                            goto tipRectV;
                         else
-                            goto tipb;
+                            goto tipRectH;
                     } else {
                         if(tm != -2)
                             tm = i;
@@ -466,7 +466,7 @@ void MiniPhysics::processCollisions()
     {
         i = tm;
         td = 1;
-        goto tipc;
+        goto tipRectShape;
     }
 
     /*
