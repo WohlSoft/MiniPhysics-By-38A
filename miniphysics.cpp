@@ -33,7 +33,7 @@ MiniPhysics::MiniPhysics(QWidget* parent):
     pl.m_oldy = pl.m_y;
     pl.m_w = 32;
     pl.m_h = 32;
-    //pl.drawSpeed = true;
+    pl.m_drawSpeed = true;
 
     for(int i=0; i<file.blocks.size(); i++)
     {
@@ -157,8 +157,13 @@ void MiniPhysics::iterateStep()
 
         if(pl.m_velY < 8 && !pl.m_stand)
             pl.m_velY += 0.4;
-        if(pl.m_stand && keyMap[Qt::Key_Space])
+        if(pl.m_stand && keyMap[Qt::Key_Space] && !pl.m_jumpPressed)
+        {
             pl.m_velY = -10; //'8
+            pl.m_jumpPressed = true;
+        }
+        if(pl.m_jumpPressed && !keyMap[Qt::Key_Space])
+            pl.m_jumpPressed = false;
 
         pl.m_stand      = false;
         pl.m_crushedOld = pl.m_crushed;
@@ -202,7 +207,8 @@ void MiniPhysics::processCollisions()
     bool doCliffCheck = false;
     QVector<obj*> l_clifCheck;
     QVector<obj*> l_toBump;
-    double divSpeed = 0.0;
+    double speedNum = 0.0;
+    double speedSum = 0.0;
 
     for(i=0; i<objs.size(); i++)
     {
@@ -248,7 +254,8 @@ void MiniPhysics::processCollisions()
                             pl.m_velY   = objs[i].m_velY;
                             pl.m_stand  = true;
                             pl.m_velX   = pl.m_velX_source + objs[i].m_velX;
-                            divSpeed += 1.0;
+                            speedSum += objs[i].m_velX;
+                            speedNum += 1.0;
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
                         }
@@ -278,7 +285,8 @@ void MiniPhysics::processCollisions()
                             pl.m_x = objs[i].m_x - pl.m_w;
                             pl.m_velX = objs[i].m_velX;
                             pl.m_velX_source = objs[i].m_velX;
-                            divSpeed = 0.0;
+                            speedSum = 0.0;
+                            speedNum = 0.0;
                             contactAt = obj::Contact_Left;
                         }
                     } else {
@@ -291,7 +299,8 @@ void MiniPhysics::processCollisions()
                             pl.m_x = objs[i].m_x + objs[i].m_w;
                             pl.m_velX = objs[i].m_velX;
                             pl.m_velX_source = objs[i].m_velX;
-                            divSpeed = 0.0;
+                            speedSum = 0.0;
+                            speedNum = 0.0;
                             contactAt = obj::Contact_Right;
                         }
                     }
@@ -308,7 +317,7 @@ void MiniPhysics::processCollisions()
                         {
                             if( pl.bottom() > objs[i].bottom())
                                 goto tipRectB;
-                            if( pl.bottom() > objs[i].top() )
+                            if( pl.bottom() >= objs[i].top() )
                                 goto tipRectT;
                         }
                         else if( ( pl.bottom() > objs[i].bottom() ) )
@@ -332,7 +341,8 @@ void MiniPhysics::processCollisions()
                                 pl.m_velY = pl.m_velX * k;
                             pl.m_stand = true;
                             pl.m_velX = pl.m_velX_source + objs[i].m_velX;
-                            divSpeed += 1.0;
+                            speedSum += objs[i].m_velX;
+                            speedNum += 1.0;
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
                         }
@@ -342,7 +352,7 @@ void MiniPhysics::processCollisions()
                         {
                             if( pl.bottom() > objs[i].bottom())
                                 goto tipRectB;
-                            if(pl.bottom() > objs[i].top())
+                            if(pl.bottom() >= objs[i].top())
                                 goto tipRectT;
                         }
                         else if( ( pl.bottom() > objs[i].bottom() ) )
@@ -366,7 +376,8 @@ void MiniPhysics::processCollisions()
                                 pl.m_velY = -pl.m_velX * k;
                             pl.m_stand = true;
                             pl.m_velX = pl.m_velX_source + objs[i].m_velX;
-                            divSpeed += 1.0;
+                            speedSum += objs[i].m_velX;
+                            speedNum += 1.0;
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
                         }
@@ -522,8 +533,10 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
             pl.m_cliff = true;
     }
 
-    if(divSpeed > 1.0)
-        pl.m_velX /= divSpeed;
+    if((speedNum > 1.0) && (speedSum != 0.0))
+    {
+        pl.m_velX = pl.m_velX_source + (speedSum/speedNum);
+    }
 
 }
 
