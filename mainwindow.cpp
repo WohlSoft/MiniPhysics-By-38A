@@ -1,5 +1,9 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <QDesktopServices>
+#include <QMenu>
+#include <QAction>
+#include <QUrl>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -18,4 +22,14 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::on_MainWindow_customContextMenuRequested(const QPoint &pos)
+{
+    QMenu menu(this);
+    QAction *getSrc = menu.addAction("Get source code of this tool");
+    QAction *reply  = menu.exec( mapToGlobal(pos) );
+
+    if( reply == getSrc )
+        QDesktopServices::openUrl(QUrl("https://github.com/Wohlhabend-Networks/MiniPhysics-By-38A"));
 }
