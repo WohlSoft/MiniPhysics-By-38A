@@ -175,6 +175,11 @@ void MiniPhysics::iterateStep()
         pl.m_oldy = pl.m_y;
         pl.m_x += pl.m_velX;
         pl.m_y += pl.m_velY;
+
+        if(pl.m_onSlope)
+            pl.m_y += pl.m_onSlopeYAdd;
+
+        pl.m_onSlope = false;
     }
 
 }
@@ -329,9 +334,15 @@ void MiniPhysics::processCollisions()
                                     goto tipRectB;
                             } else {
                                 if( pl.centerX() < objs[i].centerX() )
-                                    goto tipRectL;
+                                {
+                                    if(pl.m_velX >= 0.0)
+                                        goto tipRectL;
+                                }
                                 else
-                                    goto tipRectR;
+                                {
+                                    if(pl.m_velX <= 0.0)
+                                        goto tipRectR;
+                                }
                             }
                         }
                         else if( pl.bottom() > objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k) - 1 )
@@ -340,6 +351,13 @@ void MiniPhysics::processCollisions()
                             pl.m_velY = objs[i].m_velY;
                             if( pl.m_velX > 0)
                                 pl.m_velY = pl.m_velX * k;
+
+                            pl.m_onSlope = true;
+                            pl.m_onSlopeYAdd = pl.m_velX * k;
+
+                            if((pl.m_onSlopeYAdd < 0.0) && (pl.bottom() + pl.m_onSlopeYAdd < objs[i].m_y))
+                                pl.m_onSlopeYAdd = -fabs(pl.bottom() - objs[i].m_y);
+
                             pl.m_stand = true;
                             pl.m_velX = pl.m_velX_source + objs[i].m_velX;
                             speedSum += objs[i].m_velX;
@@ -364,9 +382,15 @@ void MiniPhysics::processCollisions()
                                     goto tipRectB;
                             } else {
                                 if( pl.centerX() < objs[i].centerX() )
-                                    goto tipRectL;
+                                {
+                                    if(pl.m_velX >= 0.0)
+                                        goto tipRectL;
+                                }
                                 else
-                                    goto tipRectR;
+                                {
+                                    if(pl.m_velX <= 0.0)
+                                        goto tipRectR;
+                                }
                             }
                         }
                         else if(pl.bottom() > objs[i].m_y + ((objs[i].right() - pl.m_x - pl.m_w) * k) - 1 )
@@ -375,6 +399,13 @@ void MiniPhysics::processCollisions()
                             pl.m_velY = objs[i].m_velY;
                             if(pl.m_velX < 0)
                                 pl.m_velY = -pl.m_velX * k;
+
+                            pl.m_onSlope = true;
+                            pl.m_onSlopeYAdd = -pl.m_velX * k;
+
+                            if((pl.m_onSlopeYAdd < 0.0) && (pl.bottom() + pl.m_onSlopeYAdd < objs[i].m_y))
+                                pl.m_onSlopeYAdd = -fabs(pl.bottom() - objs[i].m_y);
+
                             pl.m_stand = true;
                             pl.m_velX = pl.m_velX_source + objs[i].m_velX;
                             speedSum += objs[i].m_velX;

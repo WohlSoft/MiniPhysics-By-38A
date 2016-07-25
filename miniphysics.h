@@ -57,7 +57,9 @@ public:
         m_drawSpeed(false),
         m_bumped(false),
         m_cliff(false),
-        m_jumpPressed(false)
+        m_jumpPressed(false),
+        m_onSlope(false),
+        m_onSlopeYAdd(0.0)
     {}
     obj(const obj& o) :
         m_id(o.m_id),
@@ -76,7 +78,9 @@ public:
         m_drawSpeed(o.m_drawSpeed),
         m_bumped(o.m_bumped),
         m_cliff(o.m_cliff),
-        m_jumpPressed(o.m_jumpPressed)
+        m_jumpPressed(o.m_jumpPressed),
+        m_onSlope(o.m_onSlope),
+        m_onSlopeYAdd(o.m_onSlopeYAdd)
     {}
 
     void paint(QPainter &p)
@@ -155,6 +159,9 @@ public:
     bool    m_bumped;
     bool    m_cliff;
     bool    m_jumpPressed;
+
+    bool    m_onSlope;
+    double  m_onSlopeYAdd;
 };
 
 class MiniPhysics : public QOpenGLWidget
