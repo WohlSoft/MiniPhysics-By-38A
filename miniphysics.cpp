@@ -181,6 +181,8 @@ void MiniPhysics::iterateStep()
 
         pl.m_onSlopeOld = pl.m_onSlope;
         pl.m_onSlope = false;
+        pl.m_onSlopeCeilingOld = pl.m_onSlopeCeiling;
+        pl.m_onSlopeCeiling = false;
     }
 
 }
@@ -280,11 +282,19 @@ void MiniPhysics::processCollisions()
                             (objs[i].m_id == obj::SL_LeftBottom) ||
                             (objs[i].m_id == obj::SL_RightBottom) )
                         {
+                            if(pl.m_onSlopeCeiling || pl.m_onSlopeCeilingOld)
+                            {
+                                if(pl.left() >= objs[i].right()-2.0 )
+                                    goto tipRectB_Skip;
+                                if(pl.right() <= objs[i].left()+2.0 )
+                                    goto tipRectB_Skip;
+                            }
                     tipRectB://Impacted at bottom
                             pl.m_y = objs[i].m_y + objs[i].m_h;
                             pl.m_velY = objs[i].m_velY;
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
+                    tipRectB_Skip:;
                         }
                     }
                 } else {
@@ -428,11 +438,11 @@ void MiniPhysics::processCollisions()
                         }
                         break;
                     case obj::SL_LeftTop:
-                        if( pl.m_x <= objs[i].m_x )
+                        if( pl.left() <= objs[i].left() )
                         {
                             if( pl.top() < objs[i].top())
                                 goto tipRectT;
-                            if(pl.top() < objs[i].bottom())
+                            if( (pl.top() < objs[i].bottom()) && ((pl.left() < objs[i].left()) || (pl.m_velX <= 0.0)) )
                                 goto tipRectB;
                         }
                         else if( ( pl.top() < objs[i].top() ) )
@@ -443,15 +453,29 @@ void MiniPhysics::processCollisions()
                                     goto tipRectT;
                             } else {
                                 if( pl.centerX() < objs[i].centerX() )
-                                    goto tipRectL;
+                                {
+                                    if(pl.m_velX >= 0.0)
+                                        goto tipRectL;
+                                }
                                 else
-                                    goto tipRectR;
+                                {
+                                    if(pl.m_velX <= 0.0)
+                                        goto tipRectR;
+                                }
                             }
                         }
                         else if(pl.m_y < objs[i].bottom() - ((pl.m_x - objs[i].m_x) * k) )
                         {
-                            pl.m_y     = objs[i].bottom() - ((pl.m_x - objs[i].m_x) * k);
+                            pl.m_y    = objs[i].bottom() - ((pl.m_x - objs[i].m_x) * k);
                             pl.m_velY = objs[i].m_velY;
+                            pl.m_onSlopeCeiling = true;
+                            #ifdef RESOLVE_CEILING_AND_FLOOR
+                            if(pl.m_stand || pl.m_onSlope || pl.m_onSlopeOld)
+                            {
+                                pl.m_x = pl.m_x+fabs(pl.m_velX);//objs[i].right();
+                                pl.m_velX_source = objs[i].m_velX;
+                            }
+                            #endif
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
                         }
@@ -461,7 +485,7 @@ void MiniPhysics::processCollisions()
                         {
                             if( pl.top() < objs[i].top())
                                 goto tipRectT;
-                            if(pl.m_y < objs[i].bottom())
+                            if( (pl.m_y < objs[i].bottom()) && ((pl.right() > objs[i].right()) || (pl.m_velX >= 0.0)) )
                                 goto tipRectB;
                         }
                         else if( ( pl.top() < objs[i].top() ) )
@@ -472,15 +496,29 @@ void MiniPhysics::processCollisions()
                                     goto tipRectT;
                             } else {
                                 if( pl.centerX() < objs[i].centerX() )
-                                    goto tipRectL;
+                                {
+                                    if(pl.m_velX >= 0.0)
+                                        goto tipRectL;
+                                }
                                 else
-                                    goto tipRectR;
+                                {
+                                    if(pl.m_velX <= 0.0)
+                                        goto tipRectR;
+                                }
                             }
                         }
                         else if(pl.m_y < objs[i].bottom() - ((objs[i].right() - pl.m_x - pl.m_w) * k))
                         {
                             pl.m_y    = objs[i].bottom() - ((objs[i].right() - pl.m_x - pl.m_w) * k);
                             pl.m_velY = objs[i].m_velY;
+                            pl.m_onSlopeCeiling = true;
+                            #ifdef RESOLVE_CEILING_AND_FLOOR
+                            if(pl.m_stand || pl.m_onSlope || pl.m_onSlopeOld)
+                            {
+                                pl.m_x = pl.m_x-fabs(pl.m_velX);//pl.m_x = objs[i].left() - pl.m_w;
+                                pl.m_velX_source = objs[i].m_velX;
+                            }
+                            #endif
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
                         }

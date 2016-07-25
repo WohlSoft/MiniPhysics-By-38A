@@ -60,6 +60,8 @@ public:
         m_jumpPressed(false),
         m_onSlope(false),
         m_onSlopeOld(false),
+        m_onSlopeCeiling(false),
+        m_onSlopeCeilingOld(false),
         m_onSlopeYAdd(0.0)
     {}
     obj(const obj& o) :
@@ -82,6 +84,8 @@ public:
         m_jumpPressed(o.m_jumpPressed),
         m_onSlope(o.m_onSlope),
         m_onSlopeOld(o.m_onSlopeOld),
+        m_onSlopeCeiling(o.m_onSlopeCeiling),
+        m_onSlopeCeilingOld(o.m_onSlopeCeilingOld),
         m_onSlopeYAdd(o.m_onSlopeYAdd)
     {}
 
@@ -168,6 +172,8 @@ public:
 
     bool    m_onSlope;
     bool    m_onSlopeOld;
+    bool    m_onSlopeCeiling;
+    bool    m_onSlopeCeilingOld;
     double  m_onSlopeYAdd;
 };
 
