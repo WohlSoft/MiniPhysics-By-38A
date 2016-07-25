@@ -349,8 +349,8 @@ void MiniPhysics::processCollisions()
                         {
                             pl.m_y = objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k ) - pl.m_h;
                             pl.m_velY = objs[i].m_velY;
-                            if( pl.m_velX > 0)
-                                pl.m_velY = pl.m_velX * k;
+                            //if( pl.m_velX > 0)
+                            //    pl.m_velY = pl.m_velX * k;
 
                             pl.m_onSlope = true;
                             pl.m_onSlopeYAdd = pl.m_velX * k;
@@ -397,8 +397,8 @@ void MiniPhysics::processCollisions()
                         {
                             pl.m_y = objs[i].m_y + ( (objs[i].right() - pl.m_x - pl.m_w) * k) - pl.m_h;
                             pl.m_velY = objs[i].m_velY;
-                            if(pl.m_velX < 0)
-                                pl.m_velY = -pl.m_velX * k;
+                            //if(pl.m_velX < 0)
+                            //    pl.m_velY = -pl.m_velX * k;
 
                             pl.m_onSlope = true;
                             pl.m_onSlopeYAdd = -pl.m_velX * k;
