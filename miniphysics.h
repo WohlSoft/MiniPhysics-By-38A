@@ -7,6 +7,7 @@
 #include <QTimer>
 #include <QList>
 #include <QHash>
+#include <QFont>
 #include <QPainter>
 
 //Private Type obj
@@ -123,9 +124,9 @@ public:
             p.drawRect(m_x, m_y, m_w, m_h); break;
         }
         if(m_drawSpeed)
-            p.drawText(m_x, m_y-10, QString("%1 %2").arg(m_velX, 7).arg(m_velY, 7) );
+            p.drawText(m_x-20, m_y-5, QString("%1 %2").arg(m_velX, 7).arg(m_velY, 7) );
         if(m_stand || m_cliff)
-            p.drawText(m_x+m_w+10, m_y, QString("%1 %2").arg(m_stand?"[G]":"   ").arg(m_cliff?"[CLIFF]":""));
+            p.drawText(m_x+m_w+10, m_y+2, QString("%1 %2").arg(m_stand?"[G]":"   ").arg(m_cliff?"[CLIFF]":""));
     }
     int     m_id;
     inline  double x()      { return m_x; }
@@ -176,6 +177,7 @@ private:
     obj     pl;
     QTimer looper;
     QOpenGLFunctions *f;
+    QFont m_font;
 };
 
 #endif // MINIPHYSICS_H

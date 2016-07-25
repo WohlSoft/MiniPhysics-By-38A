@@ -10,6 +10,7 @@ MainWindow::MainWindow(QWidget *parent) :
     fmt.setRenderableType(QSurfaceFormat::OpenGL);
     fmt.setDepthBufferSize(32);
     fmt.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
+    fmt.setSwapInterval(1);
     ui->centralWidget->setFormat(fmt);
     ui->centralWidget->grabKeyboard();
 }

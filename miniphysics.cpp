@@ -8,7 +8,8 @@
 #include "PGE_File_Formats/file_formats.h"
 
 MiniPhysics::MiniPhysics(QWidget* parent):
-    QOpenGLWidget(parent)
+    QOpenGLWidget(parent),
+    m_font("Courier New", 10, 2)
 {
     keyMap[Qt::Key_Left]  = false;
     keyMap[Qt::Key_Right] = false;
@@ -533,7 +534,7 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
             pl.m_cliff = true;
     }
 
-    if((speedNum > 1.0) && (speedSum != 0.0))
+    if( (speedNum > 1.0) && (speedSum != 0.0) )
     {
         pl.m_velX = pl.m_velX_source + (speedSum/speedNum);
     }
@@ -568,6 +569,7 @@ void MiniPhysics::paintEvent(QPaintEvent *)
     QPainter p(this);
     p.fillRect(this->rect(), Qt::white);
     p.setPen(QColor(Qt::black));
+    p.setFont(m_font);
     for(int i=0; i<objs.size(); i++)
     {
         objs[i].paint(p);
