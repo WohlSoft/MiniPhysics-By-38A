@@ -59,6 +59,7 @@ public:
         m_cliff(false),
         m_jumpPressed(false),
         m_onSlope(false),
+        m_onSlopeOld(false),
         m_onSlopeYAdd(0.0)
     {}
     obj(const obj& o) :
@@ -80,6 +81,7 @@ public:
         m_cliff(o.m_cliff),
         m_jumpPressed(o.m_jumpPressed),
         m_onSlope(o.m_onSlope),
+        m_onSlopeOld(o.m_onSlopeOld),
         m_onSlopeYAdd(o.m_onSlopeYAdd)
     {}
 
@@ -139,6 +141,10 @@ public:
     inline  double left()   { return m_x; }
     inline  double right()  { return m_x + m_w; }
     inline  double bottom() { return m_y + m_h; }
+    inline  double topOld()    { return m_oldy; }
+    inline  double leftOld()   { return m_oldx; }
+    inline  double rightOld()  { return m_oldx + m_w; }
+    inline  double bottomOld() { return m_oldy + m_h; }
     inline  double centerX() { return m_x + m_w/2.0; }
     inline  double centerY() { return m_y + m_h/2.0; }
     inline  bool   betweenH(double X) { return (X >= m_x) && (X <= m_x+m_w); }
@@ -161,6 +167,7 @@ public:
     bool    m_jumpPressed;
 
     bool    m_onSlope;
+    bool    m_onSlopeOld;
     double  m_onSlopeYAdd;
 };
 
