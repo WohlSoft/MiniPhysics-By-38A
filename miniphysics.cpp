@@ -156,8 +156,17 @@ void MiniPhysics::iterateStep()
         if(!pl.m_stand)
             pl.m_velX = pl.m_velX_source;
 
-        if(pl.m_velY < 8 && !pl.m_stand)
+        /*
+         * For NPC's: ignore "stand" flag is "on-cliff" is true.
+         * to allow catch floor holes Y velocity must not be zero!
+         * However, non-zero velocity may cause corner stumbling on slopes
+         *
+         * For playables: need to allow runnung over floor holes
+         * even width is smaller than hole
+         */
+        if(pl.m_velY < 8 && (!pl.m_stand || pl.m_cliff))
             pl.m_velY += 0.4;
+
         if(pl.m_stand && keyMap[Qt::Key_Space] && !pl.m_jumpPressed)
         {
             pl.m_velY = -10; //'8
