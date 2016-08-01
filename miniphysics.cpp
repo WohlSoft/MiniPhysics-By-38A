@@ -164,7 +164,7 @@ void MiniPhysics::iterateStep()
          * For playables: need to allow runnung over floor holes
          * even width is smaller than hole
          */
-        if(pl.m_velY < 8 && (!pl.m_stand || pl.m_cliff))
+        if( (pl.m_velY < 8) && (!pl.m_stand || pl.m_standOnYMovable || (!pl.m_holeRuning && pl.m_cliff) ) )
             pl.m_velY += 0.4;
 
         if(pl.m_stand && keyMap[Qt::Key_Space] && !pl.m_jumpPressed)
@@ -176,6 +176,7 @@ void MiniPhysics::iterateStep()
             pl.m_jumpPressed = false;
 
         pl.m_stand      = false;
+        pl.m_standOnYMovable = false;
         pl.m_crushedOld = pl.m_crushed;
         pl.m_crushed    = false;
         pl.m_cliff      = false;
@@ -282,6 +283,7 @@ void MiniPhysics::processCollisions()
                             pl.m_y = objs[i].m_y - pl.m_h;
                             pl.m_velY   = objs[i].m_velY;
                             pl.m_stand  = true;
+                            pl.m_standOnYMovable = (objs[i].m_velY != 0.0);
                             pl.m_velX   = pl.m_velX_source + objs[i].m_velX;
                             speedSum += objs[i].m_velX;
                             speedNum += 1.0;
@@ -396,6 +398,7 @@ void MiniPhysics::processCollisions()
                                     pl.m_onSlopeYAdd = -fabs(pl.bottom() - objs[i].m_y);
                             }
                             pl.m_stand = true;
+                            pl.m_standOnYMovable = (objs[i].m_velY != 0.0);
                             pl.m_velX = pl.m_velX_source + objs[i].m_velX;
                             speedSum += objs[i].m_velX;
                             speedNum += 1.0;
@@ -447,6 +450,7 @@ void MiniPhysics::processCollisions()
                                     pl.m_onSlopeYAdd = -fabs(pl.bottom() - objs[i].m_y);
                             }
                             pl.m_stand = true;
+                            pl.m_standOnYMovable = (objs[i].m_velY != 0.0);
                             pl.m_velX = pl.m_velX_source + objs[i].m_velX;
                             speedSum += objs[i].m_velX;
                             speedNum += 1.0;

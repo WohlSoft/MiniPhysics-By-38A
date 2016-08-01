@@ -52,12 +52,14 @@ public:
         m_velX_source(0.0),
         m_velY(0.0),
         m_stand(false),
+        m_standOnYMovable(false),
         m_crushed(false),
         m_crushedOld(false),
         m_drawSpeed(false),
         m_bumped(false),
         m_cliff(false),
         m_jumpPressed(false),
+        m_holeRuning(false),
         m_onSlope(false),
         m_onSlopeOld(false),
         m_onSlopeCeiling(false),
@@ -76,12 +78,14 @@ public:
         m_velX_source(o.m_velX_source),
         m_velY(o.m_velY),
         m_stand(o.m_stand),
+        m_standOnYMovable(o.m_standOnYMovable),
         m_crushed(o.m_crushed),
         m_crushedOld(o.m_crushedOld),
         m_drawSpeed(o.m_drawSpeed),
         m_bumped(o.m_bumped),
         m_cliff(o.m_cliff),
         m_jumpPressed(o.m_jumpPressed),
+        m_holeRuning(o.m_holeRuning),
         m_onSlope(o.m_onSlope),
         m_onSlopeOld(o.m_onSlopeOld),
         m_onSlopeCeiling(o.m_onSlopeCeiling),
@@ -163,12 +167,16 @@ public:
     double  m_velX_source;
     double  m_velY;
     bool    m_stand;
+    bool    m_standOnYMovable;
     bool    m_crushed;
     bool    m_crushedOld;
     bool    m_drawSpeed;
     bool    m_bumped;
     bool    m_cliff;
+    //! Is jump key pressed
     bool    m_jumpPressed;
+    //! Allow running over floor holes
+    bool    m_holeRuning;
 
     bool    m_onSlope;
     bool    m_onSlopeOld;
