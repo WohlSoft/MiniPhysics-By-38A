@@ -59,7 +59,7 @@ public:
         m_bumped(false),
         m_cliff(false),
         m_jumpPressed(false),
-        m_holeRuning(false),
+        m_allowHoleRuning(false),
         m_onSlope(false),
         m_onSlopeOld(false),
         m_onSlopeCeiling(false),
@@ -85,7 +85,7 @@ public:
         m_bumped(o.m_bumped),
         m_cliff(o.m_cliff),
         m_jumpPressed(o.m_jumpPressed),
-        m_holeRuning(o.m_holeRuning),
+        m_allowHoleRuning(o.m_allowHoleRuning),
         m_onSlope(o.m_onSlope),
         m_onSlopeOld(o.m_onSlopeOld),
         m_onSlopeCeiling(o.m_onSlopeCeiling),
@@ -176,7 +176,7 @@ public:
     //! Is jump key pressed
     bool    m_jumpPressed;
     //! Allow running over floor holes
-    bool    m_holeRuning;
+    bool    m_allowHoleRuning;
 
     bool    m_onSlope;
     bool    m_onSlopeOld;

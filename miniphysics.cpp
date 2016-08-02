@@ -32,9 +32,11 @@ MiniPhysics::MiniPhysics(QWidget* parent):
     pl.m_y = file.players[0].y;
     pl.m_oldx = pl.m_x;
     pl.m_oldy = pl.m_y;
-    pl.m_w = 32;
-    pl.m_h = 32;
+    pl.m_w = 24;
+    pl.m_h = 30;
     pl.m_drawSpeed = true;
+    //Allow hole-running
+    pl.m_allowHoleRuning = true;
 
     for(int i=0; i<file.blocks.size(); i++)
     {
@@ -164,7 +166,7 @@ void MiniPhysics::iterateStep()
          * For playables: need to allow runnung over floor holes
          * even width is smaller than hole
          */
-        if( (pl.m_velY < 8) && (!pl.m_stand || pl.m_standOnYMovable || (!pl.m_holeRuning && pl.m_cliff) ) )
+        if( (pl.m_velY < 8) && (!pl.m_stand || pl.m_standOnYMovable || (!pl.m_allowHoleRuning && pl.m_cliff) ) )
             pl.m_velY += 0.4;
 
         if(pl.m_stand && keyMap[Qt::Key_Space] && !pl.m_jumpPressed)
@@ -324,6 +326,13 @@ void MiniPhysics::processCollisions()
                             (objs[i].m_id == obj::SL_LeftTop) )
                         {
                     tipRectL://Impacted at left
+                            if(pl.m_allowHoleRuning)
+                            {
+                                if( (pl.bottom() < (objs[i].top() + 2.0)) &&
+                                        (pl.m_velY > 0.0) && (pl.m_velX > 0.0 ) &&
+                                        (fabs(pl.m_velX) > fabs(pl.m_velY)) )
+                                    goto tipRectT;
+                            }
                             pl.m_x = objs[i].m_x - pl.m_w;
                             pl.m_velX = objs[i].m_velX;
                             pl.m_velX_source = objs[i].m_velX;
@@ -338,6 +347,13 @@ void MiniPhysics::processCollisions()
                             (objs[i].m_id == obj::SL_RightTop) )
                         {
                     tipRectR://Impacted at right
+                            if(pl.m_allowHoleRuning)
+                            {
+                                if( (pl.bottom() < (objs[i].top() + 2.0)) &&
+                                        (pl.m_velY > 0.0) && (pl.m_velX < 0.0 ) &&
+                                        (fabs(pl.m_velX) > fabs(pl.m_velY)) )
+                                    goto tipRectT;
+                            }
                             pl.m_x = objs[i].m_x + objs[i].m_w;
                             pl.m_velX = objs[i].m_velX;
                             pl.m_velX_source = objs[i].m_velX;
