@@ -22,6 +22,14 @@
 //    spy As Double
 //    st As Boolean
 //End Type
+struct objRect
+{
+    double x;
+    double y;
+    double w;
+    double h;
+};
+
 class obj
 {
 public:
@@ -60,8 +68,10 @@ public:
         m_cliff(false),
         m_jumpPressed(false),
         m_allowHoleRuning(false),
-        m_onSlope(false),
-        m_onSlopeOld(false),
+        m_onSlopeFloor(false),
+        m_onSlopeFloorOld(false),
+        m_onSlopeFloorShape(0),
+        m_onSlopeFloorRect{0.0, 0.0, 0.0, 0.0},
         m_onSlopeCeiling(false),
         m_onSlopeCeilingOld(false),
         m_onSlopeYAdd(0.0)
@@ -86,8 +96,10 @@ public:
         m_cliff(o.m_cliff),
         m_jumpPressed(o.m_jumpPressed),
         m_allowHoleRuning(o.m_allowHoleRuning),
-        m_onSlope(o.m_onSlope),
-        m_onSlopeOld(o.m_onSlopeOld),
+        m_onSlopeFloor(o.m_onSlopeFloor),
+        m_onSlopeFloorOld(o.m_onSlopeFloorOld),
+        m_onSlopeFloorShape(o.m_onSlopeFloorShape),
+        m_onSlopeFloorRect(o.m_onSlopeFloorRect),
         m_onSlopeCeiling(o.m_onSlopeCeiling),
         m_onSlopeCeilingOld(o.m_onSlopeCeilingOld),
         m_onSlopeYAdd(o.m_onSlopeYAdd)
@@ -157,6 +169,7 @@ public:
     inline  double centerY() { return m_y + m_h/2.0; }
     inline  bool   betweenH(double X) { return (X >= m_x) && (X <= m_x+m_w); }
     inline  bool   betweenV(double Y) { return (Y >= m_y) && (Y <= m_y+m_h); }
+    inline  objRect rect() { return {m_x, m_y, m_w, m_h}; }
     double  m_x;
     double  m_y;
     double  m_oldx;
@@ -178,8 +191,11 @@ public:
     //! Allow running over floor holes
     bool    m_allowHoleRuning;
 
-    bool    m_onSlope;
-    bool    m_onSlopeOld;
+    bool    m_onSlopeFloor;
+    bool    m_onSlopeFloorOld;
+    //! Shape of recently contacted floor slope block
+    int     m_onSlopeFloorShape;
+    objRect m_onSlopeFloorRect;
     bool    m_onSlopeCeiling;
     bool    m_onSlopeCeilingOld;
     double  m_onSlopeYAdd;

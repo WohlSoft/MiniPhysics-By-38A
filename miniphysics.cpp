@@ -188,11 +188,11 @@ void MiniPhysics::iterateStep()
         pl.m_x += pl.m_velX;
         pl.m_y += pl.m_velY;
 
-        if(pl.m_onSlope)
+        if(pl.m_onSlopeFloor)
             pl.m_y += pl.m_onSlopeYAdd;
 
-        pl.m_onSlopeOld = pl.m_onSlope;
-        pl.m_onSlope = false;
+        pl.m_onSlopeFloorOld = pl.m_onSlopeFloor;
+        pl.m_onSlopeFloor = false;
         pl.m_onSlopeCeilingOld = pl.m_onSlopeCeiling;
         pl.m_onSlopeCeiling = false;
     }
@@ -249,6 +249,34 @@ void MiniPhysics::processCollisions()
                 l_toBump.push_back(&objs[i]);
             }
         }
+        else if(pl.m_onSlopeFloorOld) //Needed to detect cliff on the floor
+        {
+            objRect &r1 = pl.m_onSlopeFloorRect;
+            objRect  r2 = objs[i].rect();
+            if( (pl.m_onSlopeFloorShape == obj::SL_LeftBottom) && (pl.m_velX >= 0.0) )
+            {
+                if( recttouch(pl.m_x + pl.m_w, pl.centerY(), pl.m_w, pl.m_h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h)
+                    &&
+                      //is touching corners
+                      ( ( (r1.x+r1.w) >= (r2.x-1.0) ) &&
+                        ( (r1.x+r1.w) <= (r2.x+1.0) ) &&
+                        ( (r1.y+r1.h) >= (r2.y-1.0) ) &&
+                        ( (r1.y+r1.h) <= (r2.y+1.0) ) ) )
+                    l_clifCheck.push_back(&objs[i]);
+            }
+            else
+            if( (pl.m_onSlopeFloorShape == obj::SL_RightBottom) && (pl.m_velX <= 0.0) )
+            {
+                if( recttouch(pl.m_x - 16.0, pl.m_y + 16.0, pl.m_w, pl.m_h+2, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h)
+                        &&
+                          //is touching corners
+                          ( ( (r1.x) >= (r2.x+r2.w-1.0) ) &&
+                            ( (r1.x) <= (r2.x+r2.w+1.0) ) &&
+                            ( (r1.y+r1.h) >= (r2.y-1.0) ) &&
+                            ( (r1.y+r1.h) <= (r2.y+1.0) ) ) )
+                    l_clifCheck.push_back(&objs[i]);
+            }
+        }
         /* ********************Collect blocks to hit************************ */
 
         if( (pl.m_x + pl.m_w > objs[i].m_x) && (objs[i].m_x + objs[i].m_w > pl.m_x) )
@@ -274,7 +302,7 @@ void MiniPhysics::processCollisions()
                             (objs[i].m_id == obj::SL_LeftTop) ||
                             (objs[i].m_id == obj::SL_RightTop))
                         {
-                            if(pl.m_onSlope || pl.m_onSlopeOld)
+                            if(pl.m_onSlopeFloor || pl.m_onSlopeFloorOld)
                             {
                                 if(pl.left() >= objs[i].right()-2.0 )
                                     goto tipRectT_Skip;
@@ -401,7 +429,9 @@ void MiniPhysics::processCollisions()
                         {
                             pl.m_y = objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k ) - pl.m_h;
                             pl.m_velY = objs[i].m_velY;
-                            pl.m_onSlope = true;
+                            pl.m_onSlopeFloor = true;
+                            pl.m_onSlopeFloorShape = objs[i].m_id;
+                            pl.m_onSlopeFloorRect  = objs[i].rect();
                             if( pl.m_velX > 0.0)
                             {
                                 pl.m_velY = pl.m_velX * k;
@@ -455,7 +485,9 @@ void MiniPhysics::processCollisions()
                         {
                             pl.m_y = objs[i].m_y + ( (objs[i].right() - pl.m_x - pl.m_w) * k) - pl.m_h;
                             pl.m_velY = objs[i].m_velY;
-                            pl.m_onSlope = true;
+                            pl.m_onSlopeFloor = true;
+                            pl.m_onSlopeFloorShape = objs[i].m_id;
+                            pl.m_onSlopeFloorRect  = objs[i].rect();
                             if(pl.m_velX < 0.0)
                             {
                                 pl.m_velY = -pl.m_velX * k;
@@ -660,7 +692,7 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
     }
 
     //If both celling and floor slope
-    if(pl.m_onSlope && pl.m_onSlopeCeiling && !l_slopeFloor.isEmpty() && !l_slopeCeiling.isEmpty())
+    if(pl.m_onSlopeFloor && pl.m_onSlopeCeiling && !l_slopeFloor.isEmpty() && !l_slopeCeiling.isEmpty())
     {
         obj& floor      = *l_slopeFloor.first();
         obj& ceiling    = *l_slopeCeiling.first();
@@ -748,7 +780,7 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
             speedNum = 0.0;
         }
     } else
-    if(pl.m_onSlope && ceilingOn && !l_slopeFloor.isEmpty())
+    if(pl.m_onSlopeFloor && ceilingOn && !l_slopeFloor.isEmpty())
     {
         obj& floor      = *l_slopeFloor.first();
         obj& ceiling    = *ceilingOn;
