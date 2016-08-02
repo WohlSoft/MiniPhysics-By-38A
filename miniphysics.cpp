@@ -166,7 +166,11 @@ void MiniPhysics::iterateStep()
          * For playables: need to allow runnung over floor holes
          * even width is smaller than hole
          */
-        if( (pl.m_velY < 8) && (!pl.m_stand || pl.m_standOnYMovable || (!pl.m_allowHoleRuning && pl.m_cliff) ) )
+        if( (pl.m_velY < 8) && (!pl.m_stand ||
+                                 pl.m_standOnYMovable ||
+                                (!pl.m_allowHoleRuning && pl.m_cliff && (pl.m_velX_source != 0.0))
+                                )
+                )
             pl.m_velY += 0.4;
 
         if(pl.m_stand && keyMap[Qt::Key_Space] && !pl.m_jumpPressed)
@@ -174,8 +178,7 @@ void MiniPhysics::iterateStep()
             pl.m_velY = -10; //'8
             pl.m_jumpPressed = true;
         }
-        if(pl.m_jumpPressed && !keyMap[Qt::Key_Space])
-            pl.m_jumpPressed = false;
+        pl.m_jumpPressed = keyMap[Qt::Key_Space];
 
         pl.m_stand      = false;
         pl.m_standOnYMovable = false;
@@ -255,11 +258,11 @@ void MiniPhysics::processCollisions()
             objRect  r2 = objs[i].rect();
             if( (pl.m_onSlopeFloorShape == obj::SL_LeftBottom) && (pl.m_velX >= 0.0) )
             {
-                if( recttouch(pl.m_x + pl.m_w, pl.centerY(), pl.m_w, pl.m_h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h)
+                if( recttouch(pl.m_x + pl.m_w, pl.centerY(), pl.m_w, r2.h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h)
                     &&
                       //is touching corners
                       ( ( (r1.x+r1.w) >= (r2.x-1.0) ) &&
-                        ( (r1.x+r1.w) <= (r2.x+1.0) ) &&
+                        ( (r1.x+r1.w) <= (r2.x+r2.w) ) &&
                         ( (r1.y+r1.h) >= (r2.y-1.0) ) &&
                         ( (r1.y+r1.h) <= (r2.y+1.0) ) ) )
                     l_clifCheck.push_back(&objs[i]);
@@ -267,10 +270,10 @@ void MiniPhysics::processCollisions()
             else
             if( (pl.m_onSlopeFloorShape == obj::SL_RightBottom) && (pl.m_velX <= 0.0) )
             {
-                if( recttouch(pl.m_x - 16.0, pl.m_y + 16.0, pl.m_w, pl.m_h+2, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h)
+                if( recttouch(pl.m_x - 16.0, pl.m_y + 16.0, pl.m_w, r2.h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h)
                         &&
                           //is touching corners
-                          ( ( (r1.x) >= (r2.x+r2.w-1.0) ) &&
+                          ( ( (r1.x) >= (r2.x) ) &&
                             ( (r1.x) <= (r2.x+r2.w+1.0) ) &&
                             ( (r1.y+r1.h) >= (r2.y-1.0) ) &&
                             ( (r1.y+r1.h) <= (r2.y+1.0) ) ) )
@@ -316,7 +319,8 @@ void MiniPhysics::processCollisions()
                             pl.m_standOnYMovable = (objs[i].m_velY != 0.0);
                             pl.m_velX   = pl.m_velX_source + objs[i].m_velX;
                             speedSum += objs[i].m_velX;
-                            speedNum += 1.0;
+                            if(objs[i].m_velX != 0.0)
+                                speedNum += 1.0;
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
                             standingOn = &objs[i];
@@ -362,8 +366,10 @@ void MiniPhysics::processCollisions()
                                     goto tipRectT;
                             }
                             pl.m_x = objs[i].m_x - pl.m_w;
-                            pl.m_velX = objs[i].m_velX;
-                            pl.m_velX_source = objs[i].m_velX;
+                            double &splr = pl.m_velX;
+                            double &sbox = objs[i].m_velX;
+                            splr = /*(splr == 0.0) ? sbox : */std::min( splr, sbox );
+                            pl.m_velX_source = splr;
                             speedSum = 0.0;
                             speedNum = 0.0;
                             contactAt = obj::Contact_Left;
@@ -383,8 +389,10 @@ void MiniPhysics::processCollisions()
                                     goto tipRectT;
                             }
                             pl.m_x = objs[i].m_x + objs[i].m_w;
-                            pl.m_velX = objs[i].m_velX;
-                            pl.m_velX_source = objs[i].m_velX;
+                            double &splr = pl.m_velX;
+                            double &sbox = objs[i].m_velX;
+                            splr = /*(splr == 0.0) ?  sbox :*/ std::max( splr, sbox );
+                            pl.m_velX_source = splr;
                             speedSum = 0.0;
                             speedNum = 0.0;
                             contactAt = obj::Contact_Right;
@@ -447,7 +455,8 @@ void MiniPhysics::processCollisions()
                             pl.m_standOnYMovable = (objs[i].m_velY != 0.0);
                             pl.m_velX = pl.m_velX_source + objs[i].m_velX;
                             speedSum += objs[i].m_velX;
-                            speedNum += 1.0;
+                            if(objs[i].m_velX != 0.0)
+                                speedNum += 1.0;
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
                             standingOn = &objs[i];
@@ -501,7 +510,8 @@ void MiniPhysics::processCollisions()
                             pl.m_standOnYMovable = (objs[i].m_velY != 0.0);
                             pl.m_velX = pl.m_velX_source + objs[i].m_velX;
                             speedSum += objs[i].m_velX;
-                            speedNum += 1.0;
+                            if(objs[i].m_velX != 0.0)
+                                speedNum += 1.0;
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
                             standingOn = &objs[i];
