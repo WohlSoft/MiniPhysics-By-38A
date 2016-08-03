@@ -75,6 +75,7 @@ public:
         m_allowHoleRuning(false),
         m_onSlopeFloor(false),
         m_onSlopeFloorOld(false),
+        m_onSlopeFloorTopAlign(false),
         m_onSlopeFloorShape(0),
         m_onSlopeFloorRect{0.0, 0.0, 0.0, 0.0},
         m_onSlopeCeiling(false),
@@ -106,6 +107,7 @@ public:
         m_allowHoleRuning(o.m_allowHoleRuning),
         m_onSlopeFloor(o.m_onSlopeFloor),
         m_onSlopeFloorOld(o.m_onSlopeFloorOld),
+        m_onSlopeFloorTopAlign(o.m_onSlopeFloorTopAlign),
         m_onSlopeFloorShape(o.m_onSlopeFloorShape),
         m_onSlopeFloorRect(o.m_onSlopeFloorRect),
         m_onSlopeCeiling(o.m_onSlopeCeiling),
@@ -232,6 +234,8 @@ public:
 
     bool    m_onSlopeFloor;
     bool    m_onSlopeFloorOld;
+    //! Enable automatical aligning of position while staying on top corner of slope
+    bool    m_onSlopeFloorTopAlign;
     //! Shape of recently contacted floor slope block
     int     m_onSlopeFloorShape;
     objRect m_onSlopeFloorRect;

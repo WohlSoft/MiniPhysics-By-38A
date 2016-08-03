@@ -37,6 +37,8 @@ MiniPhysics::MiniPhysics(QWidget* parent):
     pl.m_drawSpeed = true;
     //Allow hole-running
     pl.m_allowHoleRuning = false;
+    //Align character while staying on top corner of the slope (
+    pl.m_onSlopeFloorTopAlign = true;
 
     for(int i=0; i<file.blocks.size(); i++)
     {
@@ -451,7 +453,7 @@ void MiniPhysics::processCollisions()
                     switch(objs[i].m_id)
                     {
                     case obj::SL_LeftBottom:
-                        if( (pl.left() <= objs[i].left()) )
+                        if( (pl.left() <= objs[i].left()) && (pl.m_onSlopeFloorTopAlign || (pl.m_velY >= 0.0) ) )
                         {
                             if( pl.bottom() > objs[i].bottom())
                                 goto tipRectB;
@@ -486,7 +488,7 @@ void MiniPhysics::processCollisions()
                             pl.m_onSlopeFloor = true;
                             pl.m_onSlopeFloorShape = objs[i].m_id;
                             pl.m_onSlopeFloorRect  = objs[i].rect();
-                            if( pl.m_velX > 0.0)
+                            if( (pl.m_velX > 0.0) || !pl.m_onSlopeFloorTopAlign)
                             {
                                 pl.m_velY = pl.m_velX * k;
                                 pl.m_onSlopeYAdd = 0.0;
@@ -511,7 +513,7 @@ void MiniPhysics::processCollisions()
                         }
                         break;
                     case obj::SL_RightBottom:
-                        if( pl.right() >= objs[i].right())
+                        if( pl.right() >= objs[i].right() && (pl.m_onSlopeFloorTopAlign || (pl.m_velY >= 0.0) ))
                         {
                             if( pl.bottom() > objs[i].bottom())
                                 goto tipRectB;
@@ -546,7 +548,7 @@ void MiniPhysics::processCollisions()
                             pl.m_onSlopeFloor = true;
                             pl.m_onSlopeFloorShape = objs[i].m_id;
                             pl.m_onSlopeFloorRect  = objs[i].rect();
-                            if(pl.m_velX < 0.0)
+                            if( (pl.m_velX < 0.0) || !pl.m_onSlopeFloorTopAlign)
                             {
                                 pl.m_velY = -pl.m_velX * k;
                                 pl.m_onSlopeYAdd = 0.0;
@@ -571,7 +573,7 @@ void MiniPhysics::processCollisions()
                     case obj::SL_LeftTop:
                         if( pl.left() <= objs[i].left() )
                         {
-                            if( pl.top() < objs[i].top())
+                            if( pl.top() < objs[i].top() )
                                 goto tipRectT;
                             if( (pl.top() < objs[i].bottom()) && ((pl.left() < objs[i].left()) || (pl.m_velX <= 0.0)) )
                                 goto tipRectB;
