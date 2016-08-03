@@ -277,7 +277,8 @@ void MiniPhysics::processCollisions()
                       ( ( (r1.x+r1.w) >= (r2.x-1.0) ) &&
                         ( (r1.x+r1.w) <= (r2.x+r2.w) ) &&
                         ( (r1.y+r1.h) >= (r2.y-1.0) ) &&
-                        ( (r1.y+r1.h) <= (r2.y+1.0) ) ) )
+                        ( (r1.y+r1.h) <= (r2.y+1.0) ) ) &&
+                        ( objs[i].top() > pl.bottom() ) )
                     l_clifCheck.push_back(&objs[i]);
             }
             else
@@ -395,7 +396,7 @@ void MiniPhysics::processCollisions()
                                 pl.m_x = objs[i].m_x - pl.m_w;
                                 double &splr = pl.m_velX;
                                 double &sbox = objs[i].m_velX;
-                                xSpeedWasReversed = splr <= sbox;
+                                xSpeedWasReversed = splr >= sbox;
                                 splr = std::min( splr, sbox );
                                 pl.m_velX_source = splr;
                                 speedSum = 0.0;
@@ -432,7 +433,7 @@ void MiniPhysics::processCollisions()
                                 pl.m_x = objs[i].m_x + objs[i].m_w;
                                 double &splr = pl.m_velX;
                                 double &sbox = objs[i].m_velX;
-                                xSpeedWasReversed = splr >= sbox;
+                                xSpeedWasReversed = splr <= sbox;
                                 splr = std::max( splr, sbox );
                                 pl.m_velX_source = splr;
                                 speedSum = 0.0;
@@ -740,18 +741,29 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
     //Hit a block
     if(doHit && !l_toBump.isEmpty())
     {
-        obj*candidate = l_toBump.first();
-        foreach(obj* x, l_toBump)
+        obj*candidate = nullptr;
+        for(int bump=0; bump<l_toBump.size(); bump++)
         {
+            obj* x = l_toBump[bump];
             if(candidate == x)
                 continue;
+            if(
+                (x->bottom() > pl.top()) && (x->bottomOld() > pl.topOld()) &&
+                (x->m_id == obj::SL_Rect || x->m_id == obj::SL_LeftBottom || x->m_id == obj::SL_RightBottom)
+            ) {
+                l_toBump.removeAt(bump); bump--;
+                continue;
+            }
+            if(!candidate)
+                candidate = x;
             if( fabs(x->centerX() - pl.centerX()) <
                 fabs(candidate->centerX() - pl.centerX()) )
             {
                 candidate = x;
             }
         }
-        candidate->m_bumped = true;
+        if(candidate)
+            candidate->m_bumped = true;
     }
 
     //Detect a cliff
@@ -819,9 +831,10 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
             speedNum = 0.0;
         }
     } else
-    if(pl.m_stand && pl.m_onSlopeCeiling && standingOn && !l_slopeCeiling.isEmpty())
+    if((pl.m_stand || !l_clifCheck.isEmpty()) && pl.m_onSlopeCeiling &&
+            (standingOn || !l_clifCheck.isEmpty()) && !l_slopeCeiling.isEmpty())
     {
-        obj& floor      = *standingOn;
+        obj& floor      = standingOn ? *standingOn : *l_clifCheck[0];
         obj& ceiling    = *l_slopeCeiling.first();
         //double k1   = floor.m_h / floor.m_w; //No needed for a floor detection
         double k2   = ceiling.m_h / ceiling.m_w;
@@ -864,49 +877,55 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
             speedNum = 0.0;
         }
     } else
-    if(pl.m_onSlopeFloor && ceilingOn && !l_slopeFloor.isEmpty())
+    if(pl.m_onSlopeFloor && (ceilingOn || !l_toBump.isEmpty()) && !l_slopeFloor.isEmpty())
     {
-        obj& floor      = *l_slopeFloor.first();
-        obj& ceiling    = *ceilingOn;
-        double k1   = floor.m_h / floor.m_w;
-        //double k2   = ceiling.m_h / ceiling.m_w;
-        double h    = pl.m_h;
-        double posX = pl.m_x;
-        if( (floor.m_id == obj::SL_LeftBottom) && (ceiling.m_id == obj::SL_Rect ||
-                                                   ceiling.m_id == obj::SL_LeftBottom ||
-                                                   ceiling.m_id == obj::SL_RightBottom) && (pl.m_velX <= 0.00) )
+        obj* ceilB = ceilingOn ? ceilingOn : l_toBump[0];
+        if( (l_slopeFloor[0] != ceilB) )
         {
-            double Y1 = floor.m_y + ( (posX - floor.m_x) * k1 ) - h;
-            double Y2 = ceiling.bottom();
-            while( (Y1 <= Y2) && (posX <= ceiling.right()) )
+            obj& floor      = *l_slopeFloor[0];
+            obj& ceiling    = *ceilB;
+            double k1   = floor.m_h / floor.m_w;
+            //double k2   = ceiling.m_h / ceiling.m_w;
+            double h    = pl.m_h;
+            double posX = pl.m_x;
+            if( (floor.m_id == obj::SL_LeftBottom) && (ceiling.m_id == obj::SL_Rect ||
+                                                       ceiling.m_id == obj::SL_LeftBottom ||
+                                                       ceiling.m_id == obj::SL_RightBottom) && (pl.m_velX <= 0.00)
+                && (ceiling.bottom() > pl.top() ) && (ceiling.bottomOld() <= pl.topOld() ) )
             {
-                posX += 1.0;
-                Y1 = floor.m_y + ( (posX - floor.m_x) * k1 ) - h;
-            }
-            pl.m_x = posX;
-            pl.m_y = Y1;
-            pl.m_velX = ceiling.m_velX;
-            pl.m_velX_source = ceiling.m_velX;
-            speedSum = 0.0;
-            speedNum = 0.0;
-        } else
-        if( (floor.m_id == obj::SL_RightBottom) && (ceiling.m_id == obj::SL_Rect ||
-                                                    ceiling.m_id == obj::SL_LeftBottom ||
-                                                    ceiling.m_id == obj::SL_RightBottom) && (pl.m_velX >= 0.00) )
-        {
-            double Y1 = floor.m_y + ( (floor.right() - posX - pl.m_w) * k1) - h;
-            double Y2 = ceiling.bottom();
-            while( (Y1 <= Y2) && ( (posX + pl.m_w) >= ceiling.left()) )
+                double Y1 = floor.m_y + ( (posX - floor.m_x) * k1 ) - h;
+                double Y2 = ceiling.bottom();
+                while( (Y1 <= Y2) && (posX <= ceiling.right()) )
+                {
+                    posX += 1.0;
+                    Y1 = floor.m_y + ( (posX - floor.m_x) * k1 ) - h;
+                }
+                pl.m_x = posX;
+                pl.m_y = Y1;
+                pl.m_velX = ceiling.m_velX;
+                pl.m_velX_source = ceiling.m_velX;
+                speedSum = 0.0;
+                speedNum = 0.0;
+            } else
+            if( (floor.m_id == obj::SL_RightBottom) && (ceiling.m_id == obj::SL_Rect ||
+                                                        ceiling.m_id == obj::SL_LeftBottom ||
+                                                        ceiling.m_id == obj::SL_RightBottom) && (pl.m_velX >= 0.00)
+                    && (ceiling.bottom() > pl.top() ) && (ceiling.bottomOld() <= pl.topOld() ) )
             {
-                posX -= 1.0;
-                Y1 = floor.m_y + ( (floor.right() - posX - pl.m_w) * k1) - h;
+                double Y1 = floor.m_y + ( (floor.right() - posX - pl.m_w) * k1) - h;
+                double Y2 = ceiling.bottom();
+                while( (Y1 <= Y2) && ( (posX + pl.m_w) >= ceiling.left()) )
+                {
+                    posX -= 1.0;
+                    Y1 = floor.m_y + ( (floor.right() - posX - pl.m_w) * k1) - h;
+                }
+                pl.m_x = posX;
+                pl.m_y = Y1;
+                pl.m_velX = ceiling.m_velX;
+                pl.m_velX_source = ceiling.m_velX;
+                speedSum = 0.0;
+                speedNum = 0.0;
             }
-            pl.m_x = posX;
-            pl.m_y = Y1;
-            pl.m_velX = ceiling.m_velX;
-            pl.m_velX_source = ceiling.m_velX;
-            speedSum = 0.0;
-            speedNum = 0.0;
         }
     }
 
