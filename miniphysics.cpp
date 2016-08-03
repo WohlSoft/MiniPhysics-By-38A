@@ -187,8 +187,7 @@ void MiniPhysics::iterateStep()
             pl.m_velY = -10; //'8
             pl.m_jumpPressed = true;
         }
-        if(!keyMap[Qt::Key_Space])
-            pl.m_jumpPressed = keyMap[Qt::Key_Space];
+        pl.m_jumpPressed = keyMap[Qt::Key_Space];
 
         pl.m_stand      = false;
         pl.m_standOnYMovable = false;
@@ -240,6 +239,7 @@ void MiniPhysics::processCollisions()
         pl.m_y = 64;
     bool doHit = false;
     bool doCliffCheck = false;
+    bool xSpeedWasReversed=false;
     QVector<obj*> l_clifCheck;
     QVector<obj*> l_toBump;
     QVector<obj*> l_slopeFloor;
@@ -393,7 +393,8 @@ void MiniPhysics::processCollisions()
                                 pl.m_x = objs[i].m_x - pl.m_w;
                                 double &splr = pl.m_velX;
                                 double &sbox = objs[i].m_velX;
-                                splr = /*(splr == 0.0) ? sbox : */std::min( splr, sbox );
+                                xSpeedWasReversed = splr <= sbox;
+                                splr = std::min( splr, sbox );
                                 pl.m_velX_source = splr;
                                 speedSum = 0.0;
                                 speedNum = 0.0;
@@ -429,7 +430,8 @@ void MiniPhysics::processCollisions()
                                 pl.m_x = objs[i].m_x + objs[i].m_w;
                                 double &splr = pl.m_velX;
                                 double &sbox = objs[i].m_velX;
-                                splr = /*(splr == 0.0) ?  sbox :*/ std::max( splr, sbox );
+                                xSpeedWasReversed = splr >= sbox;
+                                splr = std::max( splr, sbox );
                                 pl.m_velX_source = splr;
                                 speedSum = 0.0;
                                 speedNum = 0.0;
@@ -440,7 +442,8 @@ void MiniPhysics::processCollisions()
                         }
                     }
                 }
-                tm = -2;
+                if( (pl.m_stand) || (pl.m_velX_source == 0.0) || xSpeedWasReversed)
+                    tm = -2;
         tipTriangleShape://Check triangular collision
                 if(contactAt == obj::Contact_None)
                 {
@@ -596,8 +599,15 @@ void MiniPhysics::processCollisions()
                         }
                         else if(pl.m_y < objs[i].bottom() - ((pl.m_x - objs[i].m_x) * k) )
                         {
+                            double oldY = pl.m_oldy;
                             pl.m_y    = objs[i].bottom() - ((pl.m_x - objs[i].m_x) * k);
-                            pl.m_velY = objs[i].m_velY;
+                            pl.m_velY = fabs(oldY-pl.m_y);
+                            if( pl.m_velX < 0.0)
+                            {
+                                pl.m_velY = fabs(oldY-pl.m_y);
+                            } else {
+                                pl.m_velY = objs[i].m_velY;
+                            }
                             pl.m_onSlopeCeiling = true;
                             pl.m_onSlopeCeilingShape = objs[i].m_id;
                             pl.m_onSlopeCeilingRect  = objs[i].rect();
@@ -646,8 +656,14 @@ void MiniPhysics::processCollisions()
                         }
                         else if(pl.m_y < objs[i].bottom() - ((objs[i].right() - pl.m_x - pl.m_w) * k))
                         {
+                            double oldY = pl.m_oldy;
                             pl.m_y    = objs[i].bottom() - ((objs[i].right() - pl.m_x - pl.m_w) * k);
-                            pl.m_velY = objs[i].m_velY;
+                            if( pl.m_velX > 0.0)
+                            {
+                                pl.m_velY = fabs(oldY-pl.m_y);
+                            } else {
+                                pl.m_velY = objs[i].m_velY;
+                            }
                             pl.m_onSlopeCeiling = true;
                             pl.m_onSlopeCeilingShape = objs[i].m_id;
                             pl.m_onSlopeCeilingRect  = objs[i].rect();
