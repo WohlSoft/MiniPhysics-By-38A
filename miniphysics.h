@@ -28,6 +28,10 @@ struct objRect
     double y;
     double w;
     double h;
+    inline double left() {return x;}
+    inline double right() {return x+w;}
+    inline double top() {return y;}
+    inline double bottom() {return y+h;}
 };
 
 class obj
@@ -66,6 +70,7 @@ public:
         m_drawSpeed(false),
         m_bumped(false),
         m_cliff(false),
+        m_touch(Contact_None),
         m_jumpPressed(false),
         m_allowHoleRuning(false),
         m_onSlopeFloor(false),
@@ -74,6 +79,8 @@ public:
         m_onSlopeFloorRect{0.0, 0.0, 0.0, 0.0},
         m_onSlopeCeiling(false),
         m_onSlopeCeilingOld(false),
+        m_onSlopeCeilingShape(0),
+        m_onSlopeCeilingRect{0.0, 0.0, 0.0, 0.0},
         m_onSlopeYAdd(0.0)
     {}
     obj(const obj& o) :
@@ -94,6 +101,7 @@ public:
         m_drawSpeed(o.m_drawSpeed),
         m_bumped(o.m_bumped),
         m_cliff(o.m_cliff),
+        m_touch(o.m_touch),
         m_jumpPressed(o.m_jumpPressed),
         m_allowHoleRuning(o.m_allowHoleRuning),
         m_onSlopeFloor(o.m_onSlopeFloor),
@@ -102,6 +110,8 @@ public:
         m_onSlopeFloorRect(o.m_onSlopeFloorRect),
         m_onSlopeCeiling(o.m_onSlopeCeiling),
         m_onSlopeCeilingOld(o.m_onSlopeCeilingOld),
+        m_onSlopeCeilingShape(o.m_onSlopeCeilingShape),
+        m_onSlopeCeilingRect(o.m_onSlopeCeilingRect),
         m_onSlopeYAdd(o.m_onSlopeYAdd)
     {}
 
@@ -111,6 +121,34 @@ public:
         if(m_crushed && m_crushedOld)
         {
             p.setBrush(Qt::red);
+        }
+        if(m_touch != Contact_None)
+        {
+            switch(m_touch)
+            {
+            case Contact_Left:
+                {
+                    p.setBrush(Qt::cyan);
+                    break;
+                }
+            case Contact_Right:
+                {
+                    p.setBrush(Qt::yellow);
+                    break;
+                }
+            case Contact_Top:
+                {
+                    p.setBrush(Qt::darkCyan);
+                    break;
+                }
+            case Contact_Bottom:
+                {
+                    p.setBrush(Qt::darkYellow);
+                    break;
+                }
+            default:break;
+            }
+            m_touch = Contact_None;
         }
 
         if(m_bumped)
@@ -186,6 +224,7 @@ public:
     bool    m_drawSpeed;
     bool    m_bumped;
     bool    m_cliff;
+    ContactAt m_touch;
     //! Is jump key pressed
     bool    m_jumpPressed;
     //! Allow running over floor holes
@@ -198,6 +237,8 @@ public:
     objRect m_onSlopeFloorRect;
     bool    m_onSlopeCeiling;
     bool    m_onSlopeCeilingOld;
+    int     m_onSlopeCeilingShape;
+    objRect m_onSlopeCeilingRect;
     double  m_onSlopeYAdd;
 };
 
