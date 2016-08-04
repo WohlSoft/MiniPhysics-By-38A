@@ -353,6 +353,12 @@ void MiniPhysics::processCollisions()
     QVector<obj*> l_slopeFloor;
     QVector<obj*> l_slopeCeiling;
     QVector<obj*> l_possibleCrushers;
+
+    QVector<obj*> l_contactL;
+    QVector<obj*> l_contactR;
+    QVector<obj*> l_contactT;
+    QVector<obj*> l_contactB;
+
     obj* standingOn = nullptr;
     obj* ceilingOn  = nullptr;
     double speedNum = 0.0;
@@ -450,6 +456,7 @@ void MiniPhysics::processCollisions()
                             doCliffCheck = true;
                             standingOn = &objs[i];
                             objs[i].m_touch = contactAt;
+                            l_contactB.append(&objs[i]);
                     //tipRectT_Skip:;
                         }
                     } else {
@@ -473,6 +480,7 @@ void MiniPhysics::processCollisions()
                             doHit = true;
                             ceilingOn = &objs[i];
                             objs[i].m_touch = contactAt;
+                            l_contactT.append(&objs[i]);
                     //tipRectB_Skip:;
                         }
                     }
@@ -517,6 +525,7 @@ void MiniPhysics::processCollisions()
                                 speedNum = 0.0;
                                 contactAt = obj::Contact_Left;
                                 objs[i].m_touch = contactAt;
+                                l_contactR.append(&objs[i]);
                             }
                     tipRectL_Skip:;
                         }
@@ -558,6 +567,7 @@ void MiniPhysics::processCollisions()
                                 speedNum = 0.0;
                                 contactAt = obj::Contact_Right;
                                 objs[i].m_touch = contactAt;
+                                l_contactL.append(&objs[i]);
                             }
                     tipRectR_Skip:;
                         }
@@ -979,6 +989,7 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
             pl.m_y = Y1;
             pl.m_velX = ceiling.m_velX;
             pl.m_velX_source = ceiling.m_velX;
+            pl.m_onSlopeYAdd = 0.0;
             speedSum = 0.0;
             speedNum = 0.0;
         } else
@@ -997,6 +1008,7 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
             pl.m_y = Y1;
             pl.m_velX = ceiling.m_velX;
             pl.m_velX_source = ceiling.m_velX;
+            pl.m_onSlopeYAdd = 0.0;
             speedSum = 0.0;
             speedNum = 0.0;
         }
@@ -1036,6 +1048,7 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
                             double &sbox = block.m_velX;
                             splr = std::min( splr, sbox );
                             pl.m_velX_source = splr;
+                            pl.m_onSlopeYAdd = 0.0;
                             speedSum = 0.0;
                             speedNum = 0.0;
                         }
@@ -1054,6 +1067,7 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
                             double &sbox = block.m_velX;
                             splr = std::max( splr, sbox );
                             pl.m_velX_source = splr;
+                            pl.m_onSlopeYAdd = 0.0;
                             speedSum = 0.0;
                             speedNum = 0.0;
                         }
@@ -1088,6 +1102,7 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
                 double &sbox = l_slopeFloor[j]->m_velX;
                 splr = std::max( splr, sbox );
                 pl.m_velX_source = splr;
+                pl.m_onSlopeYAdd = 0.0;
                 speedSum = 0.0;
                 speedNum = 0.0;
             }
@@ -1100,6 +1115,7 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
                 double &sbox = l_slopeFloor[j]->m_velX;
                 splr = std::min( splr, sbox );
                 pl.m_velX_source = splr;
+                pl.m_onSlopeYAdd = 0.0;
                 speedSum = 0.0;
                 speedNum = 0.0;
             }
@@ -1141,6 +1157,7 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
                 double &sbox = ceiling.m_velX;
                 splr = std::min( splr, sbox );
                 pl.m_velX_source = splr /*ceiling.m_velX*/;
+                pl.m_onSlopeYAdd = 0.0;
                 speedSum = 0.0;
                 speedNum = 0.0;
             } else
@@ -1165,6 +1182,7 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
                 double &sbox = ceiling.m_velX;
                 splr = std::max( splr, sbox );
                 pl.m_velX_source = splr /*ceiling.m_velX*/;
+                pl.m_onSlopeYAdd = 0.0;
                 speedSum = 0.0;
                 speedNum = 0.0;
             }
