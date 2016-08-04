@@ -123,7 +123,8 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
-template <class TArray> void findHorizontalBoundaries(TArray &array, double &lefter, double &righter)
+template <class TArray> void findHorizontalBoundaries(TArray &array, double &lefter, double &righter,
+                                                      obj**leftest=nullptr, obj**rightest=nullptr)
 {
     if(array.isEmpty())
         return;
@@ -131,9 +132,17 @@ template <class TArray> void findHorizontalBoundaries(TArray &array, double &lef
     {
         obj* x = array[i];
         if(x->m_x < lefter)
+        {
             lefter = x->m_x;
+            if(leftest)
+                *leftest = x;
+        }
         if(x->m_x+x->m_w > righter)
+        {
             righter = x->m_x + x->m_w;
+            if(rightest)
+                *rightest = x;
+        }
     }
 }
 
@@ -311,6 +320,19 @@ static inline bool recttouch(double X,  double Y,   double w,   double h,
     return ( (X + w > x2) && (x2 + w2 > X) && (Y + h > y2) && (y2 + h2 > Y));
 }
 
+static inline bool figureTouch(obj &pl, obj& block, double margin)
+{
+    return recttouch(pl.m_x, pl.m_y+margin, pl.m_w, pl.m_h+(margin*2.0), block.m_x, block.m_y, block.m_w, block.m_h);
+    /*switch(block.m_id)
+    {
+        case obj::SL_Rect:
+        return recttouch(pl.m_x, pl.m_y+margin, pl.m_w, pl.m_h+(margin*2.0), block.m_x, block.m_y, block.m_w, block.m_h);
+    }
+    return false;
+    */
+}
+
+
 void MiniPhysics::processCollisions()
 {
     double k = 0;
@@ -344,9 +366,9 @@ void MiniPhysics::processCollisions()
         objs[i].m_bumped = false;
         contactAt = obj::Contact_None;
         /* ********************Collect blocks to hit************************ */
-        if( recttouch(pl.m_x, pl.m_y-1, pl.m_w, pl.m_h+2, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h) )
+        if( figureTouch(pl, objs[i], 1.0) )
         {
-            if(pl.m_y + pl.m_h/2.0 < objs[i].m_y+objs[i].m_h/2.0)
+            if(pl.centerY() < objs[i].centerY())
             {
                 l_clifCheck.push_back(&objs[i]);
             } else {
@@ -738,7 +760,7 @@ void MiniPhysics::processCollisions()
                         {
                             if(!colH)
                             {
-                                if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
+                                if( (objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()) ) && (pl.m_velY <= 0.0) )
                                     goto tipRectT;
                             } else {
                                 if( pl.centerX() < objs[i].centerX() )
@@ -815,6 +837,8 @@ void MiniPhysics::processCollisions()
             l_possibleCrushers.push_back(&objs[i]);
             pl.m_crushed = true;
         }
+        //DEBUGGG
+        //repaint();
     }
     if(tm >= 0)
     {
@@ -882,6 +906,9 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
             pl.m_cliff = true;
         if((pl.m_velX_source >= 0.0) && (righter < pl.centerX()) )
             pl.m_cliff = true;
+    } else {
+        if(!pl.m_stand)
+            l_clifCheck.clear();
     }
 
     //If both celling and floor slope
@@ -1003,6 +1030,8 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
                             (block.m_id == obj::SL_LeftTop) )
                         {
                             pl.m_x = block.m_x - pl.m_w;
+                            if(pl.centerY() > block.centerY())
+                                pl.m_y = block.bottom();
                             double &splr = pl.m_velX;
                             double &sbox = block.m_velX;
                             splr = std::min( splr, sbox );
@@ -1019,6 +1048,8 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
                             (block.m_id == obj::SL_RightTop) )
                         {
                             pl.m_x = block.m_x + block.m_w;
+                            if(pl.centerY() > block.centerY())
+                                pl.m_y = block.bottom();
                             double &splr = pl.m_velX;
                             double &sbox = block.m_velX;
                             splr = std::max( splr, sbox );
@@ -1093,7 +1124,7 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
             // LEFT!!!
             if( (floor.m_id == obj::SL_LeftBottom) && (ceiling.m_id == obj::SL_Rect ||
                                                        ceiling.m_id == obj::SL_LeftBottom ||
-                                                       ceiling.m_id == obj::SL_RightBottom) && (pl.m_velX <= 0.00)
+                                                       ceiling.m_id == obj::SL_RightBottom) && (pl.m_velX < 0.0)
                 && (ceiling.bottom() > pl.top() ) && (ceiling.centerYold() < pl.centerYold()) )
             {
                 double Y1 = floor.m_y + ( (posX - floor.m_x) * k1 ) - h;
@@ -1114,9 +1145,10 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
                 speedNum = 0.0;
             } else
             // RIGHT!!!
-            if( (floor.m_id == obj::SL_RightBottom) && (ceiling.m_id == obj::SL_Rect ||
-                                                        ceiling.m_id == obj::SL_LeftBottom ||
-                                                        ceiling.m_id == obj::SL_RightBottom) && (pl.m_velX >= 0.00)
+            if( (floor.m_id == obj::SL_RightBottom) &&
+                    (ceiling.m_id == obj::SL_Rect ||
+                    (ceiling.m_id == obj::SL_LeftBottom) ||
+                    (ceiling.m_id == obj::SL_RightBottom)) && (pl.m_velX > 0.0)
                     && (ceiling.bottom() > pl.top() ) && (ceiling.centerYold() < pl.centerYold()) )
             {
                 double Y1 = floor.m_y + ( (floor.right() - posX - pl.m_w) * k1) - h;
@@ -1153,10 +1185,11 @@ void MiniPhysics::loop()
     if(!g_globalPause)
         processCollisions();
     repaint();
-    if(pl.m_crushed)
-        printf("ouch!\n");
     if(pl.m_crushed && pl.m_crushedOld)
+    {
         printf("OOOOOOOOOUCH!\n");
+        fflush(stdout);
+    }
 }
 
 void MiniPhysics::keyPressEvent(QKeyEvent *event)
