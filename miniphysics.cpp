@@ -396,7 +396,7 @@ void MiniPhysics::processCollisions()
                                 pl.m_x = objs[i].m_x - pl.m_w;
                                 double &splr = pl.m_velX;
                                 double &sbox = objs[i].m_velX;
-                                xSpeedWasReversed = splr >= sbox;
+                                xSpeedWasReversed = splr <= sbox;
                                 splr = std::min( splr, sbox );
                                 pl.m_velX_source = splr;
                                 speedSum = 0.0;
@@ -433,7 +433,7 @@ void MiniPhysics::processCollisions()
                                 pl.m_x = objs[i].m_x + objs[i].m_w;
                                 double &splr = pl.m_velX;
                                 double &sbox = objs[i].m_velX;
-                                xSpeedWasReversed = splr <= sbox;
+                                xSpeedWasReversed = splr >= sbox;
                                 splr = std::max( splr, sbox );
                                 pl.m_velX_source = splr;
                                 speedSum = 0.0;
