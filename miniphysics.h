@@ -207,6 +207,8 @@ public:
     inline  double bottomOld() { return m_oldy + m_h; }
     inline  double centerX() { return m_x + m_w/2.0; }
     inline  double centerY() { return m_y + m_h/2.0; }
+    inline  double centerXold() { return m_oldx + m_w/2.0; }
+    inline  double centerYold() { return m_oldy + m_h/2.0; }
     inline  bool   betweenH(double X) { return (X >= m_x) && (X <= m_x+m_w); }
     inline  bool   betweenV(double Y) { return (Y >= m_y) && (Y <= m_y+m_h); }
     inline  objRect rect() { return {m_x, m_y, m_w, m_h}; }
@@ -246,11 +248,16 @@ public:
     double  m_onSlopeYAdd;
 };
 
+struct LevelData;
 class MiniPhysics : public QOpenGLWidget
 {
     Q_OBJECT
 public:
     explicit MiniPhysics(QWidget* parent=nullptr);
+
+    void initTest1();
+    void initTest2();
+    void initTestCommon(LevelData *file);
 protected:
     void iterateStep();
     void processCollisions();

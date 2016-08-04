@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>test.lvlx</file>
+        <file>test2.lvlx</file>
     </qresource>
 </RCC>
