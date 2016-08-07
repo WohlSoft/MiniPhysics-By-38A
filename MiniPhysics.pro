@@ -11,6 +11,9 @@ TEMPLATE = app
 
 CONFIG += c++11
 
+CONFIG(release, debug|release):message(Release build!) #will print
+CONFIG(debug, debug|release):message(Debug build!) #no print
+
 QMAKE_CXXFLAGS += -ffloat-store
 
 DEFINES += PGE_FILES_QT
