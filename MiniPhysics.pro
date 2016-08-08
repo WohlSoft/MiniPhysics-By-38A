@@ -11,6 +11,8 @@ TEMPLATE = app
 
 CONFIG += c++11
 
+DESTDIR = $$PWD/bin
+
 CONFIG(release, debug|release):message(Release build!) #will print
 CONFIG(debug, debug|release):message(Debug build!) #no print
 
@@ -31,3 +33,4 @@ FORMS    += mainwindow.ui
 
 RESOURCES += \
     res.qrc
+
