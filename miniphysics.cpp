@@ -409,16 +409,21 @@ inline bool isBlockRightWall(obj* block)
            (block->m_id == obj::SL_RightTop);
 }
 
-inline bool findMinimalHeight(int idF, objRect sF, int idC, objRect sC, double w, double h, double *x, double *y)
+inline bool findMinimalHeight(int idF, objRect sF,
+                              int idC, objRect sC,
+                              double w, double h, double *x, double *y,
+                              bool slT=false, bool slB=false)
 {
     double &posX = *x;
     double &posY = *y;
     double k1   = sF.h / sF.w;
     double k2   = sC.h / sC.w;
     /***************************Ceiling and floor slopes*******************************/
-    if( (idF==obj::SL_LeftBottom) && (idC==obj::SL_LeftTop) )
+    if( slT && slB && (idF==obj::SL_LeftBottom) && (idC==obj::SL_LeftTop) )
     {
+        //LeftBottom
         double Y1 = sF.y + ( (posX - sF.x) * k1 ) - h;
+        //LeftTop
         double Y2 = sC.bottom() - ((posX - sC.x) * k2);
         while( (Y1 < Y2) && (posX <= sC.right()) )
         {
@@ -430,9 +435,11 @@ inline bool findMinimalHeight(int idF, objRect sF, int idC, objRect sC, double w
         return true;
     }
     else
-    if( (idF==obj::SL_RightBottom) && (idC==obj::SL_RightTop) )
+    if( slT && slB && (idF==obj::SL_RightBottom) && (idC==obj::SL_RightTop) )
     {
+        //RightBottom
         double Y1 = sF.y + ( (sF.right() - posX - w) * k1) - h;
+        //RightTop
         double Y2 = sC.bottom() - ((sC.right() - posX - w) * k2);
         while( (Y1 < Y2) && ( (posX + w) >= sC.left()) )
         {
@@ -443,9 +450,42 @@ inline bool findMinimalHeight(int idF, objRect sF, int idC, objRect sC, double w
         posY = Y1;
         return true;
     }
+
+    else
+    if( slT && slB && (idF==obj::SL_RightBottom) && (idC==obj::SL_LeftTop) && (k1 != k2) )
+    {
+        //RightBottom
+        double Y1 = sF.y + ( (sF.right() - posX - w) * k1) - h;
+        //LeftTop
+        double Y2 = sC.bottom() - ((posX - sC.x) * k2);
+        while( (Y1 < Y2) /*&& ( (posX + w) >= sC.left())*/ )
+        {
+            posX += (k1 > k2) ? -1.0 : 1.0;
+            Y1 = sF.y + ( (sF.right() - posX - w) * k1) - h;
+            Y2 = sC.bottom() - ((posX - sC.x) * k2);
+        }
+        posY = Y2;
+        return true;
+    }
+    else
+    if( slT && slB && (idF==obj::SL_LeftBottom) && (idC==obj::SL_RightTop) && (k1 != k2) )
+    {
+        //LeftBottom
+        double Y1 = sF.y + ( (posX - sF.x) * k1 ) - h;
+        //RightTop
+        double Y2 = sC.bottom() - ((sC.right() - posX - w) * k2);
+        while( (Y1 < Y2) /*&& ( (posX + w) >= sC.left())*/ )
+        {
+            posX += (k1 < k2) ? -1.0 : 1.0;
+            Y1 = sF.y + ( (posX - sF.x) * k1 ) - h;
+            Y2 = sC.bottom() - ((sC.right() - posX - w) * k2);
+        }
+        posY = Y2;
+        return true;
+    }
     /***************************Ceiling slope and horizontal floor*******************************/
     else
-    if( isBlockFloor(idF) && (idC==obj::SL_LeftTop) )
+    if( slT && isBlockFloor(idF) && (idC==obj::SL_LeftTop) )
     {
         double Y1 = sF.y - h;
         double Y2 = sC.bottom() - ((posX - sC.x) * k2);
@@ -458,7 +498,7 @@ inline bool findMinimalHeight(int idF, objRect sF, int idC, objRect sC, double w
         return true;
     }
     else
-    if( isBlockFloor(idF) && (idC==obj::SL_RightTop) )
+    if( slT && isBlockFloor(idF) && (idC==obj::SL_RightTop) )
     {
         double Y1 = sF.y - h;
         double Y2 = sC.bottom() - ((sC.right() - posX - w) * k2);
@@ -472,7 +512,7 @@ inline bool findMinimalHeight(int idF, objRect sF, int idC, objRect sC, double w
     }
     /***************************Floor slope and horizontal ceiling*******************************/
     else
-    if( isBlockCeiling(idC) && (idF==obj::SL_LeftBottom) )
+    if( slB && (idF==obj::SL_LeftBottom) && isBlockCeiling(idC) )
     {
         double Y1 = sF.y + ( (posX - sF.x) * k1 ) - h;
         double Y2 = sC.bottom();
@@ -485,7 +525,7 @@ inline bool findMinimalHeight(int idF, objRect sF, int idC, objRect sC, double w
         return true;
     }
     else
-    if( isBlockCeiling(idC) && (idF==obj::SL_RightBottom) )
+    if( slB && (idF==obj::SL_RightBottom) && isBlockCeiling(idC) )
     {
         double Y1 = sF.y + ( (sF.right() - posX - w) * k1) - h;
         double Y2 = sC.bottom();
@@ -649,7 +689,8 @@ void MiniPhysics::processCollisions()
                             {
                                 if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
                                                   pl.m_onSlopeCeilingShape, pl.m_onSlopeCeilingRect,
-                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y) )
+                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y,
+                                                  pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
                                 {
                                     pl.m_velX_source = 0.0;
                                     pl.m_velX = pl.m_velX_source;
@@ -674,7 +715,8 @@ void MiniPhysics::processCollisions()
                             {
                                 if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect,
                                                       objs[i].m_id, objs[i].rect(),
-                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y) )
+                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y,
+                                                      pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
                                 {
                                     pl.m_velX_source = 0.0;
                                     pl.m_velX = pl.m_velX_source;
@@ -790,9 +832,9 @@ void MiniPhysics::processCollisions()
                                 ((!pl.m_onSlopeFloorOld && (pl.bottomOld() > objs[i].bottomOld())) ||
                                   (pl.m_onSlopeFloorShape != objs[i].m_id)))
                         {
-                            if(!colH)
+                            if(!colV)
                             {
-                                if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
+                                if( objs[i].betweenH(pl.left(), pl.right()) && (pl.m_velY >= 0.0) )
                                     goto tipRectB;
                             } else {
                                 if( pl.centerX() < objs[i].centerX() )
@@ -839,7 +881,8 @@ void MiniPhysics::processCollisions()
                             {
                                 if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
                                                   pl.m_onSlopeCeilingShape, pl.m_onSlopeCeilingRect,
-                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y) )
+                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y,
+                                                  pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
                                 {
                                     pl.m_velX_source = 0.0;
                                     pl.m_velX = pl.m_velX_source;
@@ -863,7 +906,7 @@ void MiniPhysics::processCollisions()
                         {
                             if(!colH)
                             {
-                                if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
+                                if( objs[i].betweenH(pl.left(), pl.right()) && (pl.m_velY >= 0.0) )
                                     goto tipRectB;
                             } else {
                                 if( pl.centerX() < objs[i].centerX() )
@@ -908,7 +951,8 @@ void MiniPhysics::processCollisions()
                             {
                                 if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
                                                   pl.m_onSlopeCeilingShape, pl.m_onSlopeCeilingRect,
-                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y) )
+                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y,
+                                                  pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
                                 {
                                     pl.m_velX_source = 0.0;
                                     pl.m_velX = pl.m_velX_source;
@@ -932,7 +976,7 @@ void MiniPhysics::processCollisions()
                         {
                             if(!colH)
                             {
-                                if( objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()))
+                                if( objs[i].betweenH(pl.left(), pl.right()) && (pl.m_velY <= 0.0) )
                                     goto tipRectT;
                             } else {
                                 if( pl.centerX() < objs[i].centerX() )
@@ -969,7 +1013,8 @@ void MiniPhysics::processCollisions()
                             {
                                 if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect,
                                                       objs[i].m_id, objs[i].rect(),
-                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y) )
+                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y,
+                                                      pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
                                 {
                                     pl.m_velX_source = 0.0;
                                     pl.m_velX = pl.m_velX_source;
@@ -993,7 +1038,7 @@ void MiniPhysics::processCollisions()
                         {
                             if(!colH)
                             {
-                                if( (objs[i].betweenH(pl.left()) || objs[i].betweenH(pl.right()) ) && (pl.m_velY <= 0.0) )
+                                if( objs[i].betweenH(pl.left(), pl.right()) && (pl.m_velY <= 0.0) )
                                     goto tipRectT;
                             } else {
                                 if( pl.centerX() < objs[i].centerX() )
@@ -1029,7 +1074,8 @@ void MiniPhysics::processCollisions()
                             {
                                 if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect,
                                                       objs[i].m_id, objs[i].rect(),
-                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y) )
+                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y,
+                                                      pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
                                 {
                                     pl.m_velX_source = 0.0;
                                     pl.m_velX = pl.m_velX_source;
