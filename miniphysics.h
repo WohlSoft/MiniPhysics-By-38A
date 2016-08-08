@@ -117,8 +117,10 @@ public:
         m_onSlopeYAdd(o.m_onSlopeYAdd)
     {}
 
-    void paint(QPainter &p)
+    void paint(QPainter &p, double cameraX, double cameraY)
     {
+        double x = round(-cameraX+m_x);
+        double y = round(-cameraY+m_y);
         p.setBrush(Qt::gray);
         if(m_crushed && m_crushedOld)
         {
@@ -162,37 +164,37 @@ public:
         switch(m_id)
         {
         case SL_RightBottom:
-            poly.append(QPointF(m_x, m_y+m_h));
-            poly.append(QPointF(m_x+m_w, m_y));
-            poly.append(QPointF(m_x+m_w, m_y+m_h));
+            poly.append(QPointF(x, y+m_h));
+            poly.append(QPointF(x+m_w, y));
+            poly.append(QPointF(x+m_w, y+m_h));
             p.drawPolygon(poly);
             break;
         case SL_LeftBottom:
-            poly.append(QPointF(m_x, m_y));
-            poly.append(QPointF(m_x, m_y+m_h));
-            poly.append(QPointF(m_x+m_w, m_y+m_h));
+            poly.append(QPointF(x, y));
+            poly.append(QPointF(x, y+m_h));
+            poly.append(QPointF(x+m_w, y+m_h));
             p.drawPolygon(poly);
             break;
         case SL_RightTop:
-            poly.append(QPointF(m_x, m_y));
-            poly.append(QPointF(m_x+m_w, m_y));
-            poly.append(QPointF(m_x+m_w, m_y+m_h));
+            poly.append(QPointF(x, y));
+            poly.append(QPointF(x+m_w, y));
+            poly.append(QPointF(x+m_w, y+m_h));
             p.drawPolygon(poly);
             break;
         case SL_LeftTop:
-            poly.append(QPointF(m_x, m_y));
-            poly.append(QPointF(m_x+m_w, m_y));
-            poly.append(QPointF(m_x, m_y+m_h));
+            poly.append(QPointF(x, y));
+            poly.append(QPointF(x+m_w, y));
+            poly.append(QPointF(x, y+m_h));
             p.drawPolygon(poly);
             break;
         default:
         case SL_Rect:
-            p.drawRect(m_x, m_y, m_w, m_h); break;
+            p.drawRect(x, y, m_w, m_h); break;
         }
         if(m_drawSpeed)
-            p.drawText(m_x-20, m_y-5, QString("%1 %2").arg(m_velX, 7).arg(m_velY, 7) );
+            p.drawText(x-20, y-5, QString("%1 %2").arg(m_velX, 7).arg(m_velY, 7) );
         if(m_stand || m_cliff)
-            p.drawText(m_x+m_w+10, m_y+2, QString("%1 %2").arg(m_stand?"[G]":"   ").arg(m_cliff?"[CLIFF]":""));
+            p.drawText(x+m_w+10, y+2, QString("%1 %2").arg(m_stand?"[G]":"   ").arg(m_cliff?"[CLIFF]":""));
     }
     int     m_id;
     inline  double x()      { return m_x; }
@@ -209,7 +211,9 @@ public:
     inline  double centerY() { return m_y + m_h/2.0; }
     inline  double centerXold() { return m_oldx + m_w/2.0; }
     inline  double centerYold() { return m_oldy + m_h/2.0; }
+    inline  bool   betweenH(double left, double right) { if(right < m_x) return false; if(left > m_x+m_w) return false; return true; }
     inline  bool   betweenH(double X) { return (X >= m_x) && (X <= m_x+m_w); }
+    inline  bool   betweenV(double top, double bottom) { if(bottom < m_y) return false; if(top > m_y+m_h) return false; return true; }
     inline  bool   betweenV(double Y) { return (Y >= m_y) && (Y <= m_y+m_h); }
     inline  objRect rect() { return {m_x, m_y, m_w, m_h}; }
     double  m_x;
@@ -267,6 +271,8 @@ protected:
     void initializeGL();
     void paintEvent(QPaintEvent *e);
 private:
+    double cameraX;
+    double cameraY;
     QHash<int, bool> keyMap;
     QList<obj>  objs;
     QList<obj*> movingBlock;
