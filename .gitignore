@@ -8,7 +8,7 @@
 *.upx
 Makefile*
 /bin
-/_packed
+/mini-physics
 /ipch
 /DoxyDocs
 /Debug
