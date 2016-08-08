@@ -462,7 +462,7 @@ inline bool findMinimalHeight(int idF, objRect sF, int idC, objRect sC, double w
     {
         double Y1 = sF.y - h;
         double Y2 = sC.bottom() - ((sC.right() - posX - w) * k2);
-        while( (Y1 <= Y2) && ( (posX + w) >= sC.left()) )
+        while( (Y1 < Y2) && ( (posX + w) >= sC.left()) )
         {
             posX -= 1.0;
             Y2 = sC.bottom() - ((sC.right() - posX - w) * k2);
@@ -476,12 +476,12 @@ inline bool findMinimalHeight(int idF, objRect sF, int idC, objRect sC, double w
     {
         double Y1 = sF.y + ( (posX - sF.x) * k1 ) - h;
         double Y2 = sC.bottom();
-        while( (Y1 <= Y2) && (posX < sC.right()) )
+        while( (Y1 < Y2) && (posX < sC.right()) )
         {
             posX += 1.0;
             Y1 = sF.y + ( (posX - sF.x) * k1 ) - h;
         }
-        posY = Y1;
+        posY = Y2;
         return true;
     }
     else
@@ -489,12 +489,12 @@ inline bool findMinimalHeight(int idF, objRect sF, int idC, objRect sC, double w
     {
         double Y1 = sF.y + ( (sF.right() - posX - w) * k1) - h;
         double Y2 = sC.bottom();
-        while( (Y1 <= Y2) && ( (posX + w) > sC.left()) )
+        while( (Y1 < Y2) && ( (posX + w) > sC.left()) )
         {
             posX -= 1.0;
             Y1 = sF.y + ( (sF.right() - posX - w) * k1) - h;
         }
-        posY = Y1;
+        posY = Y2;
         return true;
     }
 
