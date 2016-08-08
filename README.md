@@ -24,7 +24,14 @@ This engine demo implements a classical platform game physics. Such a:
 Notes: Character automatically will be teleported to up side of screen when it will fall down into the pit
 
 # Building from sources
+* Clonning requires a downloading of dependent submodules
+```bash
+git clone https://github.com/Wohlhabend-Networks/MiniPhysics-By-38A.git
+cd MiniPhysics-By-38A
+git submodule update --init --recursive
+```
 * This demo can be built on almost any platform supported by Qt (Linux, Windows, Mac OS X).
 * For correct working OpenGL support is required.
 * You are required to have [latest Qt 5 package which you can take here](https://www.qt.io/download-open-source/)
 Just open the MiniPhysics.pro in the Qt Creator and process the build.
+
