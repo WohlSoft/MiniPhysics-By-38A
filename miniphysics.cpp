@@ -830,9 +830,9 @@ void MiniPhysics::processCollisions()
                         }
                         else if( ( pl.bottom() > objs[i].bottom() ) &&
                                 ((!pl.m_onSlopeFloorOld && (pl.bottomOld() > objs[i].bottomOld())) ||
-                                  (pl.m_onSlopeFloorShape != objs[i].m_id)))
+                                  (pl.m_onSlopeFloorShape != objs[i].m_id) ))
                         {
-                            if(!colV)
+                            if(!colH)
                             {
                                 if( objs[i].betweenH(pl.left(), pl.right()) && (pl.m_velY >= 0.0) )
                                     goto tipRectB;
