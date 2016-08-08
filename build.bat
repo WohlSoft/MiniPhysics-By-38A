@@ -7,7 +7,7 @@ IF NOT EXIST "%SEVENZIP%\7z.exe" SET SEVENZIP=C:\Program Files (x86)\7-Zip
 IF NOT EXIST "%SEVENZIP%\7z.exe" SET SEVENZIP=%ProgramFiles%\7-Zip
 
 qmake MiniPhysics.pro CONFIG+=release CONFIG-=debug
-make
+mingw32-make
 
 md _packed
 cd bin
