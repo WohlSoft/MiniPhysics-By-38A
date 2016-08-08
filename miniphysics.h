@@ -273,6 +273,7 @@ protected:
 private:
     double cameraX;
     double cameraY;
+    int lastTest;
     QHash<int, bool> keyMap;
     QList<obj>  objs;
     QList<obj*> movingBlock;

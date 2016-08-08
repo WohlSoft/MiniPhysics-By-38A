@@ -7,9 +7,6 @@
 
 #include "PGE_File_Formats/file_formats.h"
 
-QList<objRect> g_paintRectsAndPause;
-bool           g_globalPause = false;
-
 static double brick1Passed = 0.0;
 static double brick2Passed = 0.0;
 static double brick3Passed = 0.0;
@@ -21,11 +18,19 @@ MiniPhysics::MiniPhysics(QWidget* parent):
 {
     connect(&looper, &QTimer::timeout, this, &MiniPhysics::loop);
     looper.setTimerType(Qt::PreciseTimer);
+    pl.m_w = 24;
+    pl.m_h = 30;
+    //Allow hole-running
+    pl.m_allowHoleRuning = false;
+    //Align character while staying on top corner of the slope (
+    pl.m_onSlopeFloorTopAlign = true;
+
     initTest1();
 }
 
 void MiniPhysics::initTest1()
 {
+    lastTest = 1;
     LevelData file;
     QFile physFile(":/test.lvlx");
     physFile.open(QIODevice::ReadOnly);
@@ -40,6 +45,7 @@ void MiniPhysics::initTest1()
 
 void MiniPhysics::initTest2()
 {
+    lastTest = 2;
     LevelData file;
     QFile physFile(":/test2.lvlx");
     physFile.open(QIODevice::ReadOnly);
@@ -77,13 +83,7 @@ void MiniPhysics::initTestCommon(LevelData *fileP)
     pl.m_y = file.players[0].y;
     pl.m_oldx = pl.m_x;
     pl.m_oldy = pl.m_y;
-    pl.m_w = 32;
-    pl.m_h = 32;
     pl.m_drawSpeed = true;
-    //Allow hole-running
-    pl.m_allowHoleRuning = false;
-    //Align character while staying on top corner of the slope (
-    pl.m_onSlopeFloorTopAlign = true;
 
     for(int i=0; i<file.blocks.size(); i++)
     {
@@ -110,7 +110,6 @@ void MiniPhysics::initTestCommon(LevelData *fileP)
         int lastID = movingBlock.size()-1;
         obj &brick1 = *movingBlock[lastID];
         brick1.m_velX = 0.8;
-        //brick1.drawSpeed = true;
         obj &brick2 = *movingBlock[lastID-1];
         brick2.m_velY = 1.0;
         obj &brick3 = *movingBlock[lastID-2];
@@ -183,18 +182,47 @@ void MiniPhysics::iterateStep()
     else if(keyMap[Qt::Key_F4])
         looper.setInterval(500);
     else if(keyMap[Qt::Key_F11])
-        initTest1();
-    else if(keyMap[Qt::Key_F12])
-        initTest2();
-
-    if(g_globalPause)
     {
-        if(keyMap[Qt::Key_Enter])
-        {
-            g_paintRectsAndPause.clear();
-            g_globalPause = false;
-        }
-        return;
+        keyMap[Qt::Key_F11] = false;
+        initTest1();
+    }
+    else if(keyMap[Qt::Key_F12])
+    {
+        keyMap[Qt::Key_F12] = false;
+        initTest2();
+    }
+
+    if(keyMap[Qt::Key_1])
+    {
+        keyMap[Qt::Key_1]=false;
+        pl.m_y += pl.m_h-30;
+        pl.m_w = 24;
+        pl.m_h = 30;
+    }
+    if(keyMap[Qt::Key_2])
+    {
+        keyMap[Qt::Key_2]=false;
+        pl.m_y += pl.m_h-32;
+        pl.m_w = 32;
+        pl.m_h = 32;
+    }
+    if(keyMap[Qt::Key_3])
+    {
+        keyMap[Qt::Key_3]=false;
+        pl.m_y += pl.m_h-50;
+        pl.m_w = 24;
+        pl.m_h = 50;
+    }
+
+    if(keyMap[Qt::Key_Q])
+    {
+        keyMap[Qt::Key_Q] = false;
+        pl.m_allowHoleRuning = !pl.m_allowHoleRuning;
+    }
+    if(keyMap[Qt::Key_W])
+    {
+        keyMap[Qt::Key_W]=false;
+        pl.m_onSlopeFloorTopAlign = !pl.m_onSlopeFloorTopAlign;
     }
 
     bool lk=false, rk=false;
@@ -215,7 +243,6 @@ void MiniPhysics::iterateStep()
         brick2.m_oldy = brick2.m_y;
         brick2.m_y   += brick2.m_velY;
         brick2Passed += brick2.m_velY;
-        //brick.y += brick.spy;
         if(brick2Passed > 8.0*32.0 || brick2Passed < 0.0)
             brick2.m_velY *= -1.0;
 
@@ -223,7 +250,6 @@ void MiniPhysics::iterateStep()
         brick3.m_oldx = brick3.m_x;
         brick3.m_x   += brick3.m_velX;
         brick3Passed += brick3.m_velX;
-        //brick.y += brick.spy;
         if(brick3Passed > 9.0*32.0 || brick3Passed < 0.0)
             brick3.m_velX *= -1.0;
 
@@ -231,7 +257,6 @@ void MiniPhysics::iterateStep()
         brick4.m_oldx = brick4.m_x;
         brick4.m_x   += brick4.m_velX;
         brick4Passed += brick4.m_velX;
-        //brick.y += brick.spy;
         if(brick4Passed > 10.0*32.0 || brick4Passed < 0.0)
             brick4.m_velX *= -1.0;
     }
@@ -255,7 +280,6 @@ void MiniPhysics::iterateStep()
             }
             else
             {
-                //pl.m_velX_source = 0;
                 Xmod = -pl.m_velX_source;
             }
         }
@@ -327,15 +351,35 @@ static inline bool figureTouch(obj &pl, obj& block, double marginV = 0.0, double
 {
     return recttouch(pl.m_x+marginH, pl.m_y+marginV, pl.m_w-(marginH*2.0), pl.m_h-(marginV*2.0),
                      block.m_x,      block.m_y,      block.m_w,            block.m_h);
-    /*switch(block.m_id)
-    {
-        case obj::SL_Rect:
-        return recttouch(pl.m_x, pl.m_y+margin, pl.m_w, pl.m_h+(margin*2.0), block.m_x, block.m_y, block.m_w, block.m_h);
-    }
-    return false;
-    */
 }
 
+inline bool isBlockFloor(int id)
+{
+    return (id == obj::SL_Rect) ||
+           (id == obj::SL_LeftTop) ||
+           (id == obj::SL_RightTop);
+}
+
+inline bool isBlockCeiling(int id)
+{
+    return (id == obj::SL_Rect) ||
+           (id == obj::SL_LeftBottom) ||
+           (id == obj::SL_RightBottom);
+}
+
+inline bool isBlockLeftWall(int id)
+{
+    return (id == obj::SL_Rect) ||
+           (id == obj::SL_LeftBottom) ||
+           (id == obj::SL_LeftTop);
+}
+
+inline bool isBlockRightWall(int id)
+{
+    return (id == obj::SL_Rect) ||
+           (id == obj::SL_RightBottom) ||
+           (id == obj::SL_RightTop);
+}
 
 inline bool isBlockFloor(obj* block)
 {
@@ -365,8 +409,97 @@ inline bool isBlockRightWall(obj* block)
            (block->m_id == obj::SL_RightTop);
 }
 
+inline bool findMinimalHeight(int idF, objRect sF, int idC, objRect sC, double w, double h, double *x, double *y)
+{
+    double &posX = *x;
+    double &posY = *y;
+    double k1   = sF.h / sF.w;
+    double k2   = sC.h / sC.w;
+    /***************************Ceiling and floor slopes*******************************/
+    if( (idF==obj::SL_LeftBottom) && (idC==obj::SL_LeftTop) )
+    {
+        double Y1 = sF.y + ( (posX - sF.x) * k1 ) - h;
+        double Y2 = sC.bottom() - ((posX - sC.x) * k2);
+        while( (Y1 < Y2) && (posX <= sC.right()) )
+        {
+            posX += 1.0;
+            Y1 = sF.y + ( (posX - sF.x) * k1 ) - h;
+            Y2 = sC.bottom() - ((posX - sC.x) * k2);
+        }
+        posY = Y1;
+        return true;
+    }
+    else
+    if( (idF==obj::SL_RightBottom) && (idC==obj::SL_RightTop) )
+    {
+        double Y1 = sF.y + ( (sF.right() - posX - w) * k1) - h;
+        double Y2 = sC.bottom() - ((sC.right() - posX - w) * k2);
+        while( (Y1 <= Y2) && ( (posX + w) >= sC.left()) )
+        {
+            posX -= 1.0;
+            Y1 = sF.y + ( (sF.right() - posX - w) * k1) - h;
+            Y2 = sC.bottom() - ((sC.right() - posX - w) * k2);
+        }
+        posY = Y1;
+        return true;
+    }
+    /***************************Ceiling slope and horizontal floor*******************************/
+    else
+    if( isBlockFloor(idF) && (idC==obj::SL_LeftTop) )
+    {
+        double Y1 = sF.y - h;
+        double Y2 = sC.bottom() - ((posX - sC.x) * k2);
+        while( (Y1 < Y2) && (posX <= sC.right()) )
+        {
+            posX += 1.0;
+            Y2 = sC.bottom() - ((posX - sC.x) * k2);
+        }
+        posY = Y1;
+        return true;
+    }
+    else
+    if( isBlockFloor(idF) && (idC==obj::SL_RightTop) )
+    {
+        double Y1 = sF.y - h;
+        double Y2 = sC.bottom() - ((sC.right() - posX - w) * k2);
+        while( (Y1 <= Y2) && ( (posX + w) >= sC.left()) )
+        {
+            posX -= 1.0;
+            Y2 = sC.bottom() - ((sC.right() - posX - w) * k2);
+        }
+        posY = Y1;
+        return true;
+    }
+    /***************************Floor slope and horizontal ceiling*******************************/
+    else
+    if( isBlockCeiling(idC) && (idF==obj::SL_LeftBottom) )
+    {
+        double Y1 = sF.y + ( (posX - sF.x) * k1 ) - h;
+        double Y2 = sC.bottom();
+        while( (Y1 <= Y2) && (posX < sC.right()) )
+        {
+            posX += 1.0;
+            Y1 = sF.y + ( (posX - sF.x) * k1 ) - h;
+        }
+        posY = Y1;
+        return true;
+    }
+    else
+    if( isBlockCeiling(idC) && (idF==obj::SL_RightBottom) )
+    {
+        double Y1 = sF.y + ( (sF.right() - posX - w) * k1) - h;
+        double Y2 = sC.bottom();
+        while( (Y1 <= Y2) && ( (posX + w) > sC.left()) )
+        {
+            posX -= 1.0;
+            Y1 = sF.y + ( (sF.right() - posX - w) * k1) - h;
+        }
+        posY = Y1;
+        return true;
+    }
 
-
+    return false;
+}
 
 void MiniPhysics::processCollisions()
 {
@@ -380,6 +513,7 @@ void MiniPhysics::processCollisions()
     //Return player to top back on fall down
     if(pl.m_y > this->height())
         pl.m_y = 64;
+
     bool doHit = false;
     bool doCliffCheck = false;
     bool xSpeedWasReversed=false;
@@ -389,26 +523,31 @@ void MiniPhysics::processCollisions()
     QVector<obj*> l_slopeCeiling;
     QVector<obj*> l_possibleCrushers;
 
-    QVector<obj*> l_vizibleL;
-    QVector<obj*> l_vizibleR;
-    QVector<obj*> l_vizibleT;
-    QVector<obj*> l_vizibleB;
+    //QVector<obj*> l_vizibleL;
+    //QVector<obj*> l_vizibleR;
+    //QVector<obj*> l_vizibleT;
+    //QVector<obj*> l_vizibleB;
 
     QVector<obj*> l_contactL;
     QVector<obj*> l_contactR;
     QVector<obj*> l_contactT;
     QVector<obj*> l_contactB;
 
-    //obj* standingOn = nullptr;
-    obj* ceilingOn  = nullptr;
     double speedNum = 0.0;
     double speedSum = 0.0;
 
-    //! DEBUG ONLY!!
-    g_paintRectsAndPause.clear();
+    bool blockSkip = false;
+    int  blockSkipStartFrom = 0;
+    int  blockSkipI = 0;
 
     for(i=0; i<objs.size(); i++)
     {
+        if(blockSkip && (blockSkipI==i))
+        {
+            blockSkip = false;
+            continue;
+        }
+
         objs[i].m_bumped = false;
         contactAt = obj::Contact_None;
         /* ********************Collect blocks to hit************************ */
@@ -421,6 +560,7 @@ void MiniPhysics::processCollisions()
                 l_toBump.push_back(&objs[i]);
             }
         }
+        /*
         if( figureTouch(pl, objs[i], -1.0, -1.0) )
         {
             if(pl.betweenV( objs[i].centerY() ) )
@@ -438,7 +578,8 @@ void MiniPhysics::processCollisions()
                 }
             }
         }
-        else if(pl.m_onSlopeFloorOld) //Collect extra candidates for a cliff detection on the slope
+        else */
+        if(pl.m_onSlopeFloor) //Collect extra candidates for a cliff detection on the slope
         {
             objRect &r1 = pl.m_onSlopeFloorRect;
             objRect  r2 = objs[i].rect();
@@ -504,6 +645,18 @@ void MiniPhysics::processCollisions()
                             //standingOn = &objs[i];
                             objs[i].m_touch = contactAt;
                             l_contactB.append(&objs[i]);
+                            if(pl.m_onSlopeCeiling)
+                            {
+                                if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
+                                                  pl.m_onSlopeCeilingShape, pl.m_onSlopeCeilingRect,
+                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y) )
+                                {
+                                    pl.m_velX_source = 0.0;
+                                    pl.m_velX = pl.m_velX_source;
+                                    speedSum = 0.0;
+                                    speedNum = 0.0;
+                                }
+                            }
                         }
                     } else {
                         //'bottom
@@ -514,9 +667,21 @@ void MiniPhysics::processCollisions()
                             pl.m_velY = objs[i].m_velY;
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
-                            ceilingOn = &objs[i];
+                            //ceilingOn = &objs[i];
                             objs[i].m_touch = contactAt;
                             l_contactT.append(&objs[i]);
+                            if(pl.m_onSlopeFloor)
+                            {
+                                if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect,
+                                                      objs[i].m_id, objs[i].rect(),
+                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y) )
+                                {
+                                    pl.m_velX_source = 0.0;
+                                    pl.m_velX = pl.m_velX_source;
+                                    speedSum = 0.0;
+                                    speedNum = 0.0;
+                                }
+                            }
                     //tipRectB_Skip:;
                         }
                     }
@@ -670,7 +835,18 @@ void MiniPhysics::processCollisions()
                             doCliffCheck = true;
                             //standingOn = &objs[i];
                             l_slopeFloor.push_back(&objs[i]);
-                            objs[i].m_touch = contactAt;
+                            if(pl.m_onSlopeCeiling)
+                            {
+                                if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
+                                                  pl.m_onSlopeCeilingShape, pl.m_onSlopeCeilingRect,
+                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y) )
+                                {
+                                    pl.m_velX_source = 0.0;
+                                    pl.m_velX = pl.m_velX_source;
+                                    speedSum = 0.0;
+                                    speedNum = 0.0;
+                                }
+                            }
                         }
                         break;
                     case obj::SL_RightBottom:
@@ -728,7 +904,18 @@ void MiniPhysics::processCollisions()
                             doCliffCheck = true;
                             //standingOn = &objs[i];
                             l_slopeFloor.push_back(&objs[i]);
-                            objs[i].m_touch = contactAt;
+                            if(pl.m_onSlopeCeiling)
+                            {
+                                if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
+                                                  pl.m_onSlopeCeilingShape, pl.m_onSlopeCeilingRect,
+                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y) )
+                                {
+                                    pl.m_velX_source = 0.0;
+                                    pl.m_velX = pl.m_velX_source;
+                                    speedSum = 0.0;
+                                    speedNum = 0.0;
+                                }
+                            }
                         }
                         break;
                     case obj::SL_LeftTop:
@@ -774,18 +961,22 @@ void MiniPhysics::processCollisions()
                             pl.m_onSlopeCeiling = true;
                             pl.m_onSlopeCeilingShape = objs[i].m_id;
                             pl.m_onSlopeCeilingRect  = objs[i].rect();
-                            #ifdef RESOLVE_CEILING_AND_FLOOR
-                            if(pl.m_stand || pl.m_onSlope || pl.m_onSlopeOld)
-                            {
-                                pl.m_x = pl.m_x+fabs(pl.m_velX);//objs[i].right();
-                                pl.m_velX_source = objs[i].m_velX;
-                            }
-                            #endif
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
-                            ceilingOn = &objs[i];
+                            //ceilingOn = &objs[i];
                             l_slopeCeiling.push_back(&objs[i]);
-                            objs[i].m_touch = contactAt;
+                            if(pl.m_onSlopeFloor)
+                            {
+                                if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect,
+                                                      objs[i].m_id, objs[i].rect(),
+                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y) )
+                                {
+                                    pl.m_velX_source = 0.0;
+                                    pl.m_velX = pl.m_velX_source;
+                                    speedSum = 0.0;
+                                    speedNum = 0.0;
+                                }
+                            }
                         }
                         break;
                     case obj::SL_RightTop:
@@ -830,22 +1021,35 @@ void MiniPhysics::processCollisions()
                             pl.m_onSlopeCeiling = true;
                             pl.m_onSlopeCeilingShape = objs[i].m_id;
                             pl.m_onSlopeCeilingRect  = objs[i].rect();
-                            #ifdef RESOLVE_CEILING_AND_FLOOR
-                            if(pl.m_stand || pl.m_onSlope || pl.m_onSlopeOld)
-                            {
-                                pl.m_x = pl.m_x-fabs(pl.m_velX);//pl.m_x = objs[i].left() - pl.m_w;
-                                pl.m_velX_source = objs[i].m_velX;
-                            }
-                            #endif
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
-                            ceilingOn = &objs[i];
+                            //ceilingOn = &objs[i];
                             l_slopeCeiling.push_back(&objs[i]);
-                            objs[i].m_touch = contactAt;
+                            if(pl.m_onSlopeFloor)
+                            {
+                                if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect,
+                                                      objs[i].m_id, objs[i].rect(),
+                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y) )
+                                {
+                                    pl.m_velX_source = 0.0;
+                                    pl.m_velX = pl.m_velX_source;
+                                    speedSum = 0.0;
+                                    speedNum = 0.0;
+                                }
+                            }
                         }
                         break;
                     default:
                         break;
+                    }
+                    if(contactAt != obj::Contact_None)
+                    {
+                        objs[i].m_touch = contactAt;
+                        //Set block skipping
+                        blockSkipI = i;
+                        i = blockSkipStartFrom;
+                        blockSkipStartFrom = blockSkipI;
+                        blockSkip = true;
                     }
                 }
             } else {
@@ -893,18 +1097,6 @@ void MiniPhysics::processCollisions()
         td = 1;
         goto tipRectShape;
     }
-    /*
-    if(doAlignY)
-        pl.m_y = alignYto;
-    */
-
-    /*
-if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
-    fabs(nearest->posRect.center().x()-posRect.center().x()) )
-*/
-
-//#define centerOfObj(obj) (obj->m_x + obj->m_w / 2.0)
-//#define centerOfObjR(obj) (obj.m_x + obj.m_w / 2.0)
 
     //Hit a block
     if(doHit && !l_toBump.isEmpty())
@@ -915,14 +1107,6 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
             obj* x = l_toBump[bump];
             if(candidate == x)
                 continue;
-            /*
-            if(
-                (x->bottom() > pl.top()) && (x->bottomOld() > pl.topOld()) &&
-                (x->m_id == obj::SL_Rect || x->m_id == obj::SL_LeftBottom || x->m_id == obj::SL_RightBottom)
-            ) {
-                l_toBump.removeAt(bump); bump--;
-                continue;
-            }*/
             if(!candidate)
                 candidate = x;
             if( fabs(x->centerX() - pl.centerX()) < fabs(candidate->centerX() - pl.centerX()) )
@@ -958,290 +1142,6 @@ if( fabs(blocks[i]->posRect.center().x()-posRect.center().x())<
             l_clifCheck.clear();
     }
 
-    //Resolve corner collision when slope ceiling and slope floor
-    if(pl.m_onSlopeFloor && pl.m_onSlopeCeiling && !l_slopeFloor.isEmpty() && !l_slopeCeiling.isEmpty())
-    {
-        obj& floor      = *l_slopeFloor.first();
-        obj& ceiling    = *l_slopeCeiling.first();
-        double k1   = floor.m_h / floor.m_w;
-        double k2   = ceiling.m_h / ceiling.m_w;
-        double h    = pl.m_h;
-        double posX = pl.m_x;
-        if( (floor.m_id == obj::SL_LeftBottom) && (ceiling.m_id == obj::SL_LeftTop) && (pl.m_velX <= 0.00) )
-        {
-            double Y1 = floor.m_y + ( (posX - floor.m_x) * k1 ) - h;
-            double Y2 = ceiling.bottom() - ((posX - ceiling.m_x) * k2);
-            while( (Y1 <= Y2) && (posX <= ceiling.right()) )
-            {
-                posX += 1.0;
-                Y1 = floor.m_y + ( (posX - floor.m_x) * k1 ) - h;
-                Y2 = ceiling.bottom() - ((posX - ceiling.m_x) * k2);
-            }
-            pl.m_x = posX;
-            pl.m_y = Y1;
-            pl.m_velX = ceiling.m_velX;
-            pl.m_velX_source = ceiling.m_velX;
-            speedSum = 0.0;
-            speedNum = 0.0;
-        } else
-        if( (floor.m_id == obj::SL_RightBottom) && (ceiling.m_id == obj::SL_RightTop) && (pl.m_velX >= 0.00) )
-        {
-            double Y1 = floor.m_y + ( (floor.right() - posX - pl.m_w) * k1) - h;
-            double Y2 = ceiling.bottom() - ((ceiling.right() - posX - pl.m_w) * k2);
-            while( (Y1 <= Y2) && ( (posX + pl.m_w) >= ceiling.left()) )
-            {
-                posX -= 1.0;
-                Y1 = floor.m_y + ( (floor.right() - posX - pl.m_w) * k1) - h;
-                Y2 = ceiling.bottom() - ((ceiling.right() - posX - pl.m_w) * k2);
-            }
-            pl.m_x = posX;
-            pl.m_y = Y1;
-            pl.m_velX = ceiling.m_velX;
-            pl.m_velX_source = ceiling.m_velX;
-            speedSum = 0.0;
-            speedNum = 0.0;
-        }
-    } else
-
-    //Resolve corner collision when slope ceiling and horizontal floor
-    if( pl.m_onSlopeCeiling && !pl.m_onSlopeFloor &&
-        (pl.m_stand || !l_vizibleB.isEmpty()) &&
-        (!l_vizibleL.isEmpty()||
-         !l_vizibleR.isEmpty()||
-         !l_vizibleT.isEmpty()) )
-    {
-        obj* floor_p      = nullptr;
-
-        obj* ceilingL_p   = nullptr;//*l_slopeCeiling.first();
-        obj* ceilingR_p   = nullptr;//*l_slopeCeiling.first();
-        for(int l=0; l<l_vizibleL.size();l++)
-        {
-            if(l_vizibleL[l]->m_id == obj::SL_LeftTop)
-            {
-                ceilingL_p = l_vizibleL[l];
-                break;
-            }
-        }
-
-        if(!ceilingL_p)
-        {
-            for(int l=0; l<l_vizibleR.size();l++)
-            {
-                if(l_vizibleR[l]->m_id == obj::SL_RightTop)
-                {
-                    ceilingR_p = l_vizibleR[l];
-                    break;
-                }
-            }
-        }
-
-        if(!ceilingL_p && !ceilingR_p)
-            for(int j=0; j<l_vizibleT.size(); j++)
-            {
-                if( (l_vizibleT[j]->m_id == obj::SL_LeftTop)||
-                    (l_vizibleT[j]->m_id == obj::SL_RightTop) )
-                    ceilingOn = l_vizibleT[j];
-                if( (l_vizibleT[j]->m_id == obj::SL_LeftTop) )
-                    ceilingL_p = l_vizibleT[j];
-                if( (l_vizibleT[j]->m_id == obj::SL_RightTop) )
-                    ceilingR_p = l_vizibleT[j];
-            }
-
-        for(int j=0; j<l_vizibleB.size(); j++)
-        {
-            if( isBlockFloor(l_vizibleB[j]) && l_vizibleB[j]->betweenH(pl.left(), pl.right()) )
-                floor_p = l_vizibleB[j];
-        }
-
-        if(floor_p && (ceilingL_p||ceilingR_p))
-        {
-            //double k1   = floor.m_h / floor.m_w; //No needed for a floor detection
-            double h    = pl.m_h;
-            double posX = pl.m_x;
-            if(ceilingL_p)
-            {
-                obj& floor = *floor_p;
-                obj& ceilingL   = *ceilingL_p;//*l_slopeCeiling.first();
-                double k2   = ceilingL.m_h / ceilingL.m_w;
-                if( (floor.m_id == obj::SL_Rect ||
-                     floor.m_id == obj::SL_LeftTop ||
-                     floor.m_id == obj::SL_RightTop ) /*&& (ceilingL.m_id == obj::SL_LeftTop) && (pl.m_velX <= 0.00)*/ )
-                {
-                    double Y1 = floor.m_y - h;
-                    double Y2 = ceilingL.bottom() - ((posX - ceilingL.m_x) * k2);
-                    while( (Y1 <= Y2) && (posX <= ceilingL.right()) )
-                    {
-                        posX += 1.0;
-                        Y2 = ceilingL.bottom() - ((posX - ceilingL.m_x) * k2);
-                    }
-                    pl.m_x = posX;
-                    pl.m_y = Y1;
-                    pl.m_velX = ceilingL.m_velX;
-                    pl.m_velX_source = ceilingL.m_velX;
-                    pl.m_onSlopeYAdd = 0.0;
-                    speedSum = 0.0;
-                    speedNum = 0.0;
-                }
-            }//if(ceilingL_p)
-
-            if(ceilingR_p)
-            {
-                obj& floor = *floor_p;
-                obj& ceilingR = *ceilingR_p;//*l_slopeCeiling.first();
-                double k2   = ceilingR.m_h / ceilingR.m_w;
-                if( isBlockFloor(&floor) /*&& (ceilingR.m_id == obj::SL_RightTop) && (pl.m_velX >= 0.00)*/ )
-                {
-                    double Y1 = floor.m_y - h;
-                    double Y2 = ceilingR.bottom() - ((ceilingR.right() - posX - pl.m_w) * k2);
-                    while( (Y1 <= Y2) && ( (posX + pl.m_w) >= ceilingR.left()) )
-                    {
-                        posX -= 1.0;
-                        Y2 = ceilingR.bottom() - ((ceilingR.right() - posX - pl.m_w) * k2);
-                    }
-                    pl.m_x = posX;
-                    pl.m_y = Y1;
-                    pl.m_velX = ceilingR.m_velX;
-                    pl.m_velX_source = ceilingR.m_velX;
-                    pl.m_onSlopeYAdd = 0.0;
-                    speedSum = 0.0;
-                    speedNum = 0.0;
-                }
-            }//if(ceilingR_p)
-        }//if(floor_p && (ceilingL_p||ceilingR_p))
-    } else
-
-    //Resolve corner collision when slope floor and horizontal ceiling
-    if(!pl.m_onSlopeCeiling && pl.m_onSlopeFloor &&
-        (ceilingOn || !l_vizibleT.isEmpty())&&
-            (!l_vizibleL.isEmpty() ||
-             !l_vizibleR.isEmpty() ||
-             !l_vizibleB.isEmpty()) )
-    {
-        obj* floorT     = nullptr;
-        obj* floorL_p   = nullptr;
-        obj* floorR_p   = nullptr;
-        for(int l=0; l<l_vizibleL.size();l++)
-        {
-            if(l_vizibleL[l]->m_id == obj::SL_LeftBottom)
-            {
-                floorL_p = l_vizibleL[l];
-                floorT = floorL_p;
-                break;
-            }
-        }
-
-        if(!floorL_p)
-        {
-            for(int l=0; l<l_vizibleR.size();l++)
-            {
-                if(l_vizibleR[l]->m_id == obj::SL_RightBottom)
-                {
-                    floorR_p = l_vizibleR[l];
-                    floorT = floorR_p;
-                    break;
-                }
-            }
-        }
-
-        if(!floorL_p && !floorR_p)
-            for(int j=0; j<l_vizibleB.size(); j++)
-            {
-                if( (l_vizibleB[j]->m_id == obj::SL_LeftBottom) ||
-                    (l_vizibleB[j]->m_id == obj::SL_RightBottom) )
-                    floorT = l_vizibleB[j];
-                if( (l_vizibleB[j]->m_id == obj::SL_LeftBottom) )
-                    floorL_p = l_vizibleB[j];
-                if( (l_vizibleB[j]->m_id == obj::SL_RightBottom) )
-                    floorR_p = l_vizibleB[j];
-            }
-
-        for(int j=0; j<l_vizibleT.size(); j++)
-        {
-            if( isBlockCeiling(l_vizibleT[j]) && l_vizibleT[j]->betweenH(pl.left(), pl.right()) )
-                ceilingOn = l_vizibleT[j];
-        }
-
-        if(!ceilingOn || !floorT)
-            goto applySpeedAdd;
-
-        obj* ceilB = ceilingOn ? ceilingOn : l_vizibleT[0];
-//        if( (l_slopeFloor[0] != ceilB) )
-//        {
-            //double ceil_lefter  = ceilB->left();
-            //double ceil_righter = ceilB->right();
-            double floor_higher = floorT->top();
-            double floor_lower  = floorT->bottom();
-            //findHorizontalBoundaries(l_vizibleT, ceil_lefter, ceil_righter);
-            findVerticalBoundaries(l_slopeFloor, floor_higher, floor_lower, &floorT);
-            obj& ceiling    = *ceilB;
-
-            //double k1   = floor.m_h / floor.m_w;
-            //double k2   = ceiling.m_h / ceiling.m_w;
-            double h    = pl.m_h;
-            double posX = pl.m_x;
-            // LEFT!!!
-            if(floorL_p)
-            {
-                obj& floor      = *floorL_p;
-                double k1   = floor.m_h / floor.m_w;
-                if( (floor.m_id == obj::SL_LeftBottom) && (ceiling.m_id == obj::SL_Rect ||
-                                                           ceiling.m_id == obj::SL_LeftBottom ||
-                                                           ceiling.m_id == obj::SL_RightBottom) /*&& (pl.m_velX < 0.0)
-                    && (ceiling.bottom() > pl.top() ) && (ceiling.centerYold() < pl.centerYold()) */)
-                {
-                    double Y1 = floor.m_y + ( (posX - floor.m_x) * k1 ) - h;
-                    double Y2 = ceiling.bottom();
-                    while( (Y1 < Y2) /*&& (posX <= ceil_righter)*/ )
-                    {
-                        posX += 1.0;
-                        Y1 = floor.m_y + ( (posX - floor.m_x) * k1 ) - h;
-                    }
-                    pl.m_x = posX;
-                    pl.m_y = Y2;
-                    //pl.m_velX = ceiling.m_velX;
-                    double &splr = pl.m_velX;
-                    double &sbox = ceiling.m_velX;
-                    splr = std::max( splr, sbox );
-                    pl.m_velX_source = splr /*ceiling.m_velX*/;
-                    pl.m_onSlopeYAdd = 0.0;
-                    speedSum = 0.0;
-                    speedNum = 0.0;
-                }
-            }
-            // RIGHT!!!
-            if(floorR_p)
-            {
-                obj& floor      = *floorR_p;
-                double k1   = floor.m_h / floor.m_w;
-                if( (floor.m_id == obj::SL_RightBottom) &&
-                        (ceiling.m_id == obj::SL_Rect ||
-                        (ceiling.m_id == obj::SL_LeftBottom) ||
-                        (ceiling.m_id == obj::SL_RightBottom)) /*&& (pl.m_velX > 0.0)
-                        && (ceiling.bottom() > pl.top() ) && (ceiling.centerYold() < pl.centerYold())*/ )
-                {
-                    double Y1 = floor.m_y + ( (floor.right() - posX - pl.m_w) * k1) - h;
-                    double Y2 = ceiling.bottom();
-                    while( (Y1 < Y2) /*&& ( (posX + pl.m_w) >= ceil_lefter)*/ )
-                    {
-                        posX -= 1.0;
-                        Y1 = floor.m_y + ( (floor.right() - posX - pl.m_w) * k1) - h;
-                    }
-                    pl.m_x = posX;
-                    pl.m_y = Y2;
-                    //pl.m_velX = ceiling.m_velX;
-                    double &splr = pl.m_velX;
-                    double &sbox = ceiling.m_velX;
-                    splr = std::min( splr, sbox );
-                    pl.m_velX_source = splr /*ceiling.m_velX*/;
-                    pl.m_onSlopeYAdd = 0.0;
-                    speedSum = 0.0;
-                    speedNum = 0.0;
-                }
-          //}
-        }
-    }
-
-applySpeedAdd:
     if( (speedNum > 1.0) && (speedSum != 0.0) )
     {
         pl.m_velX = pl.m_velX_source + (speedSum/speedNum);
@@ -1252,8 +1152,7 @@ applySpeedAdd:
 void MiniPhysics::loop()
 {
     iterateStep();
-    if(!g_globalPause)
-        processCollisions();
+    processCollisions();
 
     cameraX = pl.centerX()-width()/2.0;
 
@@ -1292,12 +1191,7 @@ void MiniPhysics::paintEvent(QPaintEvent *)
         objs[i].paint(p, cameraX, cameraY);
     }
     pl.paint(p, cameraX, cameraY);
-    for(int i=0; i<g_paintRectsAndPause.size(); i++)
-    {
-        objRect& r = g_paintRectsAndPause[i];
-        p.setBrush(Qt::transparent);
-        p.setPen(Qt::red);
-        p.drawRect(r.x, r.y, r.w, r.h);
-    }
+    p.drawText(10, 10, QString("Hole-Run = %1").arg(pl.m_allowHoleRuning) );
+    p.drawText(10, 30, QString("Align on top-slope = %1").arg(pl.m_onSlopeFloorTopAlign) );
 }
 
