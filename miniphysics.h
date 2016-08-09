@@ -63,6 +63,8 @@ public:
         m_velX(0.0),
         m_velX_source(0.0),
         m_velY(0.0),
+        m_touchLeftWall(false),
+        m_touchRightWall(false),
         m_stand(false),
         m_standOnYMovable(false),
         m_crushed(false),
@@ -95,6 +97,8 @@ public:
         m_velX(o.m_velX),
         m_velX_source(o.m_velX_source),
         m_velY(o.m_velY),
+        m_touchLeftWall(o.m_touchLeftWall),
+        m_touchRightWall(o.m_touchRightWall),
         m_stand(o.m_stand),
         m_standOnYMovable(o.m_standOnYMovable),
         m_crushed(o.m_crushed),
@@ -119,8 +123,8 @@ public:
 
     void paint(QPainter &p, double cameraX, double cameraY)
     {
-        double x = round(-cameraX+m_x);
-        double y = round(-cameraY+m_y);
+        double x = round(m_x-cameraX);
+        double y = round(m_y-cameraY);
         p.setBrush(Qt::gray);
         if(m_crushed && m_crushedOld)
         {
@@ -225,6 +229,8 @@ public:
     double  m_velX;
     double  m_velX_source;
     double  m_velY;
+    bool    m_touchLeftWall;
+    bool    m_touchRightWall;
     bool    m_stand;
     bool    m_standOnYMovable;
     bool    m_crushed;

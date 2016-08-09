@@ -16,6 +16,7 @@ MiniPhysics::MiniPhysics(QWidget* parent):
     QOpenGLWidget(parent),
     m_font("Courier New", 10, 2)
 {
+    m_font.setStyleStrategy(QFont::OpenGLCompatible);
     connect(&looper, &QTimer::timeout, this, &MiniPhysics::loop);
     looper.setTimerType(Qt::PreciseTimer);
     pl.m_w = 24;
@@ -64,8 +65,8 @@ void MiniPhysics::initTestCommon(LevelData *fileP)
     movingBlock.clear();
     looper.stop();
 
-    cameraX = fileP->sections[0].size_top;
-    cameraY = 0;
+    cameraX = fileP->sections[0].size_left;
+    cameraY = fileP->sections[0].size_top;
 
     brick1Passed = 0.0;
     brick2Passed = 0.0;
@@ -309,8 +310,11 @@ void MiniPhysics::iterateStep()
             pl.m_velY = -10; //'8
             pl.m_jumpPressed = true;
         }
+
         pl.m_jumpPressed = keyMap[Qt::Key_Space];
 
+        pl.m_touchLeftWall  = false;
+        pl.m_touchRightWall = false;
         pl.m_stand      = false;
         pl.m_standOnYMovable = false;
         pl.m_crushedOld = pl.m_crushed;
@@ -551,7 +555,7 @@ void MiniPhysics::processCollisions()
     td = 0;
 
     //Return player to top back on fall down
-    if(pl.m_y > this->height())
+    if(pl.m_y > this->height()-cameraY)
         pl.m_y = 64;
 
     bool doHit = false;
@@ -572,6 +576,8 @@ void MiniPhysics::processCollisions()
     QVector<obj*> l_contactR;
     QVector<obj*> l_contactT;
     QVector<obj*> l_contactB;
+    obj* ceilingOn  = nullptr;
+    obj* standingOn = nullptr;
 
     double speedNum = 0.0;
     double speedSum = 0.0;
@@ -682,7 +688,7 @@ void MiniPhysics::processCollisions()
                                 speedNum += 1.0;
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
-                            //standingOn = &objs[i];
+                            standingOn = &objs[i];
                             objs[i].m_touch = contactAt;
                             l_contactB.append(&objs[i]);
                             if(pl.m_onSlopeCeiling)
@@ -708,7 +714,7 @@ void MiniPhysics::processCollisions()
                             pl.m_velY = objs[i].m_velY;
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
-                            //ceilingOn = &objs[i];
+                            ceilingOn = &objs[i];
                             objs[i].m_touch = contactAt;
                             l_contactT.append(&objs[i]);
                             if(pl.m_onSlopeFloor)
@@ -757,6 +763,7 @@ void MiniPhysics::processCollisions()
                                         goto tipRectT;
                                 }
                                 pl.m_x = objs[i].m_x - pl.m_w;
+                                pl.m_touchLeftWall = objs[i].betweenV(pl.centerY());
                                 double &splr = pl.m_velX;
                                 double &sbox = objs[i].m_velX;
                                 xSpeedWasReversed = splr <= sbox;
@@ -797,6 +804,7 @@ void MiniPhysics::processCollisions()
                                         goto tipRectT;
                                 }
                                 pl.m_x = objs[i].m_x + objs[i].m_w;
+                                pl.m_touchRightWall = objs[i].betweenV(pl.centerY());
                                 double &splr = pl.m_velX;
                                 double &sbox = objs[i].m_velX;
                                 xSpeedWasReversed = splr >= sbox;
@@ -1129,13 +1137,13 @@ void MiniPhysics::processCollisions()
             l_possibleCrushers.push_back(&objs[i]);
             pl.m_crushed = true;
         }
+
         if(pl.m_crushed && pl.m_crushedOld )
         {
             printf("WAAAAAAA@!!!#!#\n");
             fflush(stdout);
         }
-        //DEBUGGG
-        //repaint();
+
     }
     if(tm >= 0)
     {
@@ -1187,6 +1195,20 @@ void MiniPhysics::processCollisions()
         if(!pl.m_stand)
             l_clifCheck.clear();
     }
+
+    if(standingOn && ceilingOn)
+    {
+        //If character got crushed between moving layers
+        if(standingOn->m_velY < ceilingOn->m_velY )
+        {
+            pl.m_stand = false;
+            pl.m_y = ceilingOn->bottom();
+            pl.m_velY = ceilingOn->m_velY;
+            speedNum = 0;
+            speedSum = 0;
+        }
+    }
+
 
     if( (speedNum > 1.0) && (speedSum != 0.0) )
     {
