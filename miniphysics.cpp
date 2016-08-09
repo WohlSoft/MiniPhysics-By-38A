@@ -1206,6 +1206,10 @@ void MiniPhysics::processCollisions()
             pl.m_velY = ceilingOn->m_velY;
             speedNum = 0;
             speedSum = 0;
+            /***************************************************************************
+             * Here must be check "is floor block solid and with no top-only block"
+             * kill character. Similar must be implemented for a wall crushing
+             ***************************************************************************/
         }
     }
 
