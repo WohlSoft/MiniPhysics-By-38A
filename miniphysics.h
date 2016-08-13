@@ -199,6 +199,10 @@ public:
             p.drawText(x-20, y-5, QString("%1 %2").arg(m_velX, 7).arg(m_velY, 7) );
         if(m_stand || m_cliff)
             p.drawText(x+m_w+10, y+2, QString("%1 %2").arg(m_stand?"[G]":"   ").arg(m_cliff?"[CLIFF]":""));
+        if(m_touchLeftWall)
+            p.drawText(x+m_w+10, y+10, QString("L"));
+        if(m_touchRightWall)
+            p.drawText(x+m_w+10, y+10, QString("R"));
     }
     int     m_id;
     inline  double x()      { return m_x; }
