@@ -12,6 +12,10 @@ static double brick2Passed = 0.0;
 static double brick3Passed = 0.0;
 static double brick4Passed = 0.0;
 
+#ifdef STOP_LOOP_ON_CRUSH
+bool    alive = true;
+#endif
+
 MiniPhysics::MiniPhysics(QWidget* parent):
     QOpenGLWidget(parent),
     m_font("Courier New", 10, 2)
@@ -575,8 +579,10 @@ void MiniPhysics::processCollisions()
     QVector<obj*> l_contactT;
     QVector<obj*> l_contactB;
 
-    obj* ceilingOn  = nullptr;
-    obj* standingOn = nullptr;
+    obj* collideAtTop  = nullptr;
+    obj* collideAtBottom = nullptr;
+    obj* collideAtLeft  = nullptr;
+    obj* collideAtRight = nullptr;
 
     double speedNum = 0.0;
     double speedSum = 0.0;
@@ -659,7 +665,7 @@ void MiniPhysics::processCollisions()
                         //'top
                         if( isBlockFloor(&objs[i]))
                         {
-                    tipRectT://Impacted at top
+                    tipRectT://Impacted at top of block (bottom of player)
                             pl.m_y = objs[i].m_y - pl.m_h;
                             pl.m_velY   = objs[i].m_velY;
                             pl.m_stand  = true;
@@ -670,7 +676,7 @@ void MiniPhysics::processCollisions()
                                 speedNum += 1.0;
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
-                            standingOn = &objs[i];
+                            collideAtBottom = &objs[i];
                             objs[i].m_touch = contactAt;
                             if(pl.m_onSlopeCeiling)
                             {
@@ -690,12 +696,12 @@ void MiniPhysics::processCollisions()
                         //'bottom
                         if( isBlockCeiling(&objs[i]) )
                         {
-                    tipRectB://Impacted at bottom
+                    tipRectB://Impacted at bottom of block (top of player)
                             pl.m_y = objs[i].m_y + objs[i].m_h;
                             pl.m_velY = objs[i].m_velY;
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
-                            ceilingOn = &objs[i];
+                            collideAtTop = &objs[i];
                             objs[i].m_touch = contactAt;
                             if(pl.m_onSlopeFloor)
                             {
@@ -733,7 +739,7 @@ void MiniPhysics::processCollisions()
                                     (pl.m_onSlopeCeilingShape == obj::SL_LeftTop)  )
                                     goto tipRectL_Skip;
                             }
-                    tipRectL://Impacted at left
+                    tipRectL://Impacted at left (right of player)
                             {
                                 if(pl.m_allowHoleRuning)
                                 {
@@ -752,6 +758,7 @@ void MiniPhysics::processCollisions()
                                 speedSum = 0.0;
                                 speedNum = 0.0;
                                 contactAt = obj::Contact_Left;
+                                collideAtRight = &objs[i];
                             }
                     tipRectL_Skip:;
                         }
@@ -772,7 +779,7 @@ void MiniPhysics::processCollisions()
                                     (pl.m_onSlopeCeilingShape == obj::SL_RightTop) )
                                     goto tipRectR_Skip;
                             }
-                    tipRectR://Impacted at right
+                    tipRectR://Impacted at right (left of player)
                             {
                                 if(pl.m_allowHoleRuning)
                                 {
@@ -791,6 +798,7 @@ void MiniPhysics::processCollisions()
                                 speedSum = 0.0;
                                 speedNum = 0.0;
                                 contactAt = obj::Contact_Right;
+                                collideAtLeft = &objs[i];
                             }
                     tipRectR_Skip:;
                         }
@@ -1192,16 +1200,19 @@ void MiniPhysics::processCollisions()
             l_clifCheck.clear();
     }
 
-    if(standingOn && ceilingOn)
+    if(collideAtBottom && collideAtTop)
     {
         //If character got crushed between moving layers
-        if(standingOn->m_velY < ceilingOn->m_velY )
+        if(collideAtBottom->m_velY < collideAtTop->m_velY )
         {
             pl.m_stand = false;
-            pl.m_y = ceilingOn->bottom();
-            pl.m_velY = ceilingOn->m_velY;
+            pl.m_y = collideAtTop->bottom();
+            pl.m_velY = collideAtTop->m_velY;
             speedNum = 0;
             speedSum = 0;
+            #ifdef STOP_LOOP_ON_CRUSH
+            alive = false;
+            #endif
             /***************************************************************************
              * Here must be check "is floor block solid and with no top-only block"
              * kill character. Similar must be implemented for a wall crushing
@@ -1209,6 +1220,20 @@ void MiniPhysics::processCollisions()
         }
     }
 
+    if(collideAtLeft && collideAtRight)
+    {
+        //If character got crushed between moving layers
+        if(collideAtRight->m_velX < collideAtLeft->m_velX )
+        {
+            #ifdef STOP_LOOP_ON_CRUSH
+            alive = false;
+            #endif
+            /***************************************************************************
+             * Here must be check "is floor block solid and with no top-only block"
+             * kill character. Similar must be implemented for a wall crushing
+             ***************************************************************************/
+        }
+    }
 
     if( (speedNum > 1.0) && (speedSum != 0.0) )
     {
@@ -1219,17 +1244,23 @@ void MiniPhysics::processCollisions()
 
 void MiniPhysics::loop()
 {
-    iterateStep();
-    processCollisions();
-
+    #ifdef STOP_LOOP_ON_CRUSH
+    if(alive)
+    {
+    #endif
+        iterateStep();
+        processCollisions();
+    #ifdef STOP_LOOP_ON_CRUSH
+    }
+    #endif
     cameraX = pl.centerX()-width()/2.0;
-
     repaint();
+    /*
     if(pl.m_crushed && pl.m_crushedOld)
     {
         printf("OOOOOOOOOUCH!\n");
         fflush(stdout);
-    }
+    }*/
 }
 
 void MiniPhysics::keyPressEvent(QKeyEvent *event)
