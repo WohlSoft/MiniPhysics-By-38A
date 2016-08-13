@@ -129,9 +129,9 @@ template <typename T> int sgn(T val) {
 template <class TArray> void findHorizontalBoundaries(TArray &array, double &lefter, double &righter,
                                                       obj**leftest=nullptr, obj**rightest=nullptr)
 {
-    if(array.isEmpty())
+    if(array.empty())
         return;
-    for(int i=0; i < array.size(); i++)
+    for(unsigned int i=0; i < array.size(); i++)
     {
         obj* x = array[i];
         if(x->m_x < lefter)
@@ -565,21 +565,16 @@ void MiniPhysics::processCollisions()
     bool doHit = false;
     bool doCliffCheck = false;
     bool xSpeedWasReversed=false;
-    QVector<obj*> l_clifCheck;
-    QVector<obj*> l_toBump;
-    QVector<obj*> l_slopeFloor;
-    QVector<obj*> l_slopeCeiling;
-    QVector<obj*> l_possibleCrushers;
+    std::vector<obj*> l_clifCheck;
+    std::vector<obj*> l_toBump;
 
-    QVector<obj*> l_vizibleL;
-    QVector<obj*> l_vizibleR;
-    //QVector<obj*> l_vizibleT;
-    //QVector<obj*> l_vizibleB;
+    std::vector<obj*> l_possibleCrushers;
 
     QVector<obj*> l_contactL;
     QVector<obj*> l_contactR;
     QVector<obj*> l_contactT;
     QVector<obj*> l_contactB;
+
     obj* ceilingOn  = nullptr;
     obj* standingOn = nullptr;
 
@@ -609,37 +604,6 @@ void MiniPhysics::processCollisions()
             } else {
                 l_toBump.push_back(&objs[i]);
             }
-        }
-
-        /* ********************Find wall touch blocks************************ */
-        if( figureTouch(pl, objs[i], 0.0, -1.0) )
-        {
-            if(pl.betweenV( objs[i].centerY() ) && (objs[i].m_id == obj::SL_Rect) )
-            {
-                if(pl.centerX() < objs[i].centerX())
-                {
-                    objs[i].m_touch = obj::Contact_Left;
-                    l_vizibleR.push_back(&objs[i]);
-                    pl.m_touchRightWall = true;
-                }
-                else
-                {
-                    objs[i].m_touch = obj::Contact_Right;
-                    l_vizibleL.push_back(&objs[i]);
-                    pl.m_touchLeftWall = true;
-                }
-            }
-
-            /* else {
-                if(pl.centerY() < objs[i].centerY())
-                {
-                    objs[i].m_touch = obj::Contact_Top;
-                    l_vizibleB.push_back(&objs[i]);
-                } else {
-                    objs[i].m_touch = obj::Contact_Bottom;
-                    l_vizibleT.push_back(&objs[i]);
-                }
-            }*/
         }
 
         /* ****Collect extra candidates for a cliff detection on the slope******** */
@@ -672,9 +636,7 @@ void MiniPhysics::processCollisions()
                     l_clifCheck.push_back(&objs[i]);
             }
         }
-
         /* ************************************************************************* */
-
 
         if( (pl.m_x + pl.m_w > objs[i].m_x) && (objs[i].m_x + objs[i].m_w > pl.m_x) )
         {
@@ -710,7 +672,6 @@ void MiniPhysics::processCollisions()
                             doCliffCheck = true;
                             standingOn = &objs[i];
                             objs[i].m_touch = contactAt;
-                            l_contactB.append(&objs[i]);
                             if(pl.m_onSlopeCeiling)
                             {
                                 if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
@@ -736,7 +697,6 @@ void MiniPhysics::processCollisions()
                             doHit = true;
                             ceilingOn = &objs[i];
                             objs[i].m_touch = contactAt;
-                            l_contactT.append(&objs[i]);
                             if(pl.m_onSlopeFloor)
                             {
                                 if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect,
@@ -792,9 +752,6 @@ void MiniPhysics::processCollisions()
                                 speedSum = 0.0;
                                 speedNum = 0.0;
                                 contactAt = obj::Contact_Left;
-                                //objs[i].m_touch = contactAt;
-                                //pl.m_touchRightWall = !l_vizibleR.isEmpty();
-                                l_contactR.append(&objs[i]);
                             }
                     tipRectL_Skip:;
                         }
@@ -834,8 +791,6 @@ void MiniPhysics::processCollisions()
                                 speedSum = 0.0;
                                 speedNum = 0.0;
                                 contactAt = obj::Contact_Right;
-                                //objs[i].m_touch = contactAt;
-                                l_contactL.append(&objs[i]);
                             }
                     tipRectR_Skip:;
                         }
@@ -906,7 +861,7 @@ void MiniPhysics::processCollisions()
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
                             //standingOn = &objs[i];
-                            l_slopeFloor.push_back(&objs[i]);
+                            //l_slopeFloor.push_back(&objs[i]);
                             if(pl.m_onSlopeCeiling)
                             {
                                 if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
@@ -977,7 +932,7 @@ void MiniPhysics::processCollisions()
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
                             //standingOn = &objs[i];
-                            l_slopeFloor.push_back(&objs[i]);
+                            //l_slopeFloor.push_back(&objs[i]);
                             if(pl.m_onSlopeCeiling)
                             {
                                 if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
@@ -1038,8 +993,6 @@ void MiniPhysics::processCollisions()
                             pl.m_onSlopeCeilingRect  = objs[i].rect();
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
-                            //ceilingOn = &objs[i];
-                            l_slopeCeiling.push_back(&objs[i]);
                             if(pl.m_onSlopeFloor)
                             {
                                 if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect,
@@ -1099,8 +1052,6 @@ void MiniPhysics::processCollisions()
                             pl.m_onSlopeCeilingRect  = objs[i].rect();
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
-                            //ceilingOn = &objs[i];
-                            l_slopeCeiling.push_back(&objs[i]);
                             if(pl.m_onSlopeFloor)
                             {
                                 if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect,
@@ -1149,6 +1100,36 @@ void MiniPhysics::processCollisions()
                 }
             }
         }
+
+        /* ********************Find wall touch blocks************************ */
+        if( figureTouch(pl, objs[i], 0.0, -1.0) )
+        {
+            if(pl.betweenV( objs[i].centerY() ) && (objs[i].m_id == obj::SL_Rect) )
+            {
+                if(pl.centerX() < objs[i].centerX())
+                {
+                    objs[i].m_touch = obj::Contact_Left;
+                    pl.m_touchRightWall = true;
+                }
+                else
+                {
+                    objs[i].m_touch = obj::Contact_Right;
+                    pl.m_touchLeftWall = true;
+                }
+            }
+
+            /* else {
+                if(pl.centerY() < objs[i].centerY())
+                {
+                    objs[i].m_touch = obj::Contact_Top;
+                    l_vizibleB.push_back(&objs[i]);
+                } else {
+                    objs[i].m_touch = obj::Contact_Bottom;
+                    l_vizibleT.push_back(&objs[i]);
+                }
+            }*/
+        }
+
         if(td == 1)
         {
             tm = -1;
@@ -1176,10 +1157,10 @@ void MiniPhysics::processCollisions()
     }
 
     //Hit a block
-    if(doHit && !l_toBump.isEmpty())
+    if(doHit && !l_toBump.empty())
     {
         obj*candidate = nullptr;
-        for(int bump=0; bump<l_toBump.size(); bump++)
+        for(unsigned int bump=0; bump<l_toBump.size(); bump++)
         {
             obj* x = l_toBump[bump];
             if(candidate == x)
@@ -1196,20 +1177,12 @@ void MiniPhysics::processCollisions()
     }
 
     //Detect a cliff
-    if(doCliffCheck && !l_clifCheck.isEmpty())
+    if(doCliffCheck && !l_clifCheck.empty())
     {
-        obj* candidate = l_clifCheck.first();
+        obj* candidate = l_clifCheck[0];
         double lefter  = candidate->m_x;
         double righter = candidate->m_x+candidate->m_w;
         findHorizontalBoundaries(l_clifCheck, lefter, righter);
-//        for(int i=0; i<l_clifCheck.size(); i++)
-//        {
-//            obj* x = l_clifCheck[i];
-//            if(x->m_x < lefter)
-//                lefter = x->m_x;
-//            if(x->m_x+x->m_w > righter)
-//                righter = x->m_x + x->m_w;
-//        }
         if((pl.m_velX_source <= 0.0) && (lefter > pl.centerX()) )
             pl.m_cliff = true;
         if((pl.m_velX_source >= 0.0) && (righter < pl.centerX()) )
