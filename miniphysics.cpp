@@ -1162,11 +1162,11 @@ void MiniPhysics::processCollisions()
         if(  figureTouch(pl, objs[i], 0.0, -1.0) &&
             !figureTouch(pl, objs[i], 0.0, 0.0) )
         {
-            if( pl.betweenV( objs[i].centerY() ) &&
-                (objs[i].m_blocked[pl.m_filterID]==obj::Block_ALL) )
+            if( pl.betweenV( objs[i].centerY() ) )
             {
                 if((pl.right() <= objs[i].left()) &&
                    isBlockLeftWall(objs[i].m_id) &&
+                    ((objs[i].m_blocked[pl.m_filterID]&obj::Block_LEFT) != 0) &&
                     (pl.m_velX >= objs[i].m_velX) )
                 {
                     //objs[i].m_touch = obj::Contact_Left;
@@ -1175,6 +1175,7 @@ void MiniPhysics::processCollisions()
                 else
                 if( (pl.left() >= objs[i].right()) &&
                     isBlockRightWall(objs[i].m_id) &&
+                    ((objs[i].m_blocked[pl.m_filterID]&obj::Block_RIGHT) != 0) &&
                     (pl.m_velX <= objs[i].m_velX))
                 {
                     //objs[i].m_touch = obj::Contact_Right;
