@@ -192,36 +192,39 @@ public:
             p.setBrush(Qt::green);
         }
 
+        double w = m_w-1.0;
+        double h = m_h-1.0;
+
         QPolygonF poly;
         switch(m_id)
         {
         case SL_RightBottom:
-            poly.append(QPointF(x, y+m_h));
-            poly.append(QPointF(x+m_w, y));
-            poly.append(QPointF(x+m_w, y+m_h));
+            poly.append(QPointF(x, y+h));
+            poly.append(QPointF(x+w, y));
+            poly.append(QPointF(x+w, y+h));
             p.drawPolygon(poly);
             break;
         case SL_LeftBottom:
             poly.append(QPointF(x, y));
-            poly.append(QPointF(x, y+m_h));
-            poly.append(QPointF(x+m_w, y+m_h));
+            poly.append(QPointF(x, y+h));
+            poly.append(QPointF(x+w, y+h));
             p.drawPolygon(poly);
             break;
         case SL_RightTop:
             poly.append(QPointF(x, y));
-            poly.append(QPointF(x+m_w, y));
-            poly.append(QPointF(x+m_w, y+m_h));
+            poly.append(QPointF(x+w, y));
+            poly.append(QPointF(x+w, y+h));
             p.drawPolygon(poly);
             break;
         case SL_LeftTop:
             poly.append(QPointF(x, y));
-            poly.append(QPointF(x+m_w, y));
-            poly.append(QPointF(x, y+m_h));
+            poly.append(QPointF(x+w, y));
+            poly.append(QPointF(x, y+h));
             p.drawPolygon(poly);
             break;
         default:
         case SL_Rect:
-            p.drawRect(x, y, m_w, m_h); break;
+            p.drawRect(x, y, w, h); break;
         }
         if(m_drawSpeed)
             p.drawText(x-20, y-5, QString("%1 %2").arg(m_velX, 7).arg(m_velY, 7) );

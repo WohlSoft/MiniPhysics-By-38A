@@ -1458,7 +1458,10 @@ void MiniPhysics::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
     p.fillRect(this->rect(), Qt::white);
-    p.setPen(QColor(Qt::black));
+    p.setPen(QPen(QColor(Qt::black), 1,
+                  Qt::SolidLine,
+                  Qt::SquareCap,
+                  Qt::BevelJoin));
     p.setFont(m_font);
     for(int i=0; i<objs.size(); i++)
     {
