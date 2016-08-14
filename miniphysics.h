@@ -34,6 +34,18 @@ struct objRect
     inline double bottom() {return y+h;}
 };
 
+struct objControlls
+{
+    objControlls() :
+        left(false),
+        right(false),
+        jump(false)
+    {}
+    bool left;
+    bool right;
+    bool jump;
+};
+
 class obj
 {
 public:
@@ -95,7 +107,8 @@ public:
         m_onSlopeCeilingRect{0.0, 0.0, 0.0, 0.0},
         m_onSlopeYAdd(0.0),
         m_blocked{Block_ALL, Block_ALL},
-        m_filterID(0)
+        m_filterID(0),
+        m_keys()
     {}
     obj(const obj& o) :
         m_id(o.m_id),
@@ -131,7 +144,8 @@ public:
         m_onSlopeCeilingRect(o.m_onSlopeCeilingRect),
         m_onSlopeYAdd(o.m_onSlopeYAdd),
         m_blocked{o.m_blocked[0], o.m_blocked[1]},
-        m_filterID(o.m_filterID)
+        m_filterID(o.m_filterID),
+        m_keys(o.m_keys)
     {}
 
     void paint(QPainter &p, double cameraX, double cameraY)
@@ -276,6 +290,7 @@ public:
     double  m_onSlopeYAdd;
     int     m_blocked[2];
     int     m_filterID;
+    objControlls m_keys;
 };
 
 struct LevelData;

@@ -245,7 +245,6 @@ void MiniPhysics::iterateStep()
         pl.m_onSlopeFloorTopAlign = !pl.m_onSlopeFloorTopAlign;
     }
 
-    bool lk=false, rk=false;
     {
         int lastID  =  movingBlock.size()-1;
         obj &brick1 = *movingBlock[lastID];
@@ -282,17 +281,17 @@ void MiniPhysics::iterateStep()
     }
 
     { //With pl
-        lk = keyMap[Qt::Key_Left];
-        rk = keyMap[Qt::Key_Right];
+        pl.m_keys.left  = keyMap[Qt::Key_Left];
+        pl.m_keys.right = keyMap[Qt::Key_Right];
         double Xmod = 0;
-        if(lk ^ rk)
+        if(pl.m_keys.left ^ pl.m_keys.right)
         {
-            if( (lk && pl.m_velX_source > -6) && !pl.m_touchLeftWall )
+            if( (pl.m_keys.left && pl.m_velX_source > -6) && !pl.m_touchLeftWall )
                 Xmod -= 0.4;
-            if( (rk && pl.m_velX_source < 6) && !pl.m_touchRightWall )
+            if( (pl.m_keys.right && pl.m_velX_source < 6) && !pl.m_touchRightWall )
                 Xmod += 0.4;
         }
-        else if( !lk && !rk)
+        else if( !pl.m_keys.left && !pl.m_keys.right)
         {
             if(fabs(pl.m_velX_source) > 0.4)
             {
@@ -694,6 +693,7 @@ void MiniPhysics::processCollisions()
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
                             l_clifCheck.push_back(&objs[i]);
+                            l_contactB.push_back(&objs[i]);
                             collideAtBottom = &objs[i];
                             //objs[i].m_touch = contactAt;
                             if(pl.m_onSlopeCeiling)
@@ -724,7 +724,7 @@ void MiniPhysics::processCollisions()
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
                             collideAtTop = &objs[i];
-                            //objs[i].m_touch = contactAt;
+                            l_contactT.push_back(&objs[i]);
                             if(pl.m_onSlopeFloor)
                             {
                                 if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect,
@@ -783,6 +783,7 @@ void MiniPhysics::processCollisions()
                                 speedNum = 0.0;
                                 contactAt = obj::Contact_Left;
                                 collideAtRight = &objs[i];
+                                l_contactR.push_back(&objs[i]);
                             }
                     tipRectL_Skip:;
                         }
@@ -825,6 +826,7 @@ void MiniPhysics::processCollisions()
                                 speedNum = 0.0;
                                 contactAt = obj::Contact_Right;
                                 collideAtLeft = &objs[i];
+                                l_contactL.push_back(&objs[i]);
                             }
                     tipRectR_Skip:;
                         }
@@ -1164,14 +1166,16 @@ void MiniPhysics::processCollisions()
                 (objs[i].m_blocked[pl.m_filterID]==obj::Block_ALL) )
             {
                 if((pl.right() <= objs[i].left()) &&
-                   isBlockLeftWall(objs[i].m_id))
+                   isBlockLeftWall(objs[i].m_id) &&
+                    (pl.m_velX >= objs[i].m_velX) )
                 {
                     //objs[i].m_touch = obj::Contact_Left;
                     pl.m_touchRightWall = true;
                 }
                 else
                 if( (pl.left() >= objs[i].right()) &&
-                    isBlockRightWall(objs[i].m_id))
+                    isBlockRightWall(objs[i].m_id) &&
+                    (pl.m_velX <= objs[i].m_velX))
                 {
                     //objs[i].m_touch = obj::Contact_Right;
                     pl.m_touchLeftWall = true;
@@ -1182,14 +1186,16 @@ void MiniPhysics::processCollisions()
             {
                 if( (pl.right() <= objs[i].left()) &&
                      isBlockLeftWall(objs[i].m_id) &&
-                    ((objs[i].m_blocked[pl.m_filterID]&obj::Block_LEFT) != 0))
+                    ((objs[i].m_blocked[pl.m_filterID]&obj::Block_LEFT) != 0) &&
+                    pl.m_keys.right)
                 {
                     l_contactR.push_back(&objs[i]);
                 }
                 else
                 if( (pl.left() >= objs[i].right()) &&
                     isBlockRightWall(objs[i].m_id) &&
-                    ((objs[i].m_blocked[pl.m_filterID]&obj::Block_RIGHT) != 0))
+                    ((objs[i].m_blocked[pl.m_filterID]&obj::Block_RIGHT) != 0) &&
+                    pl.m_keys.left)
                 {
                     l_contactL.push_back(&objs[i]);
                 }
