@@ -153,15 +153,15 @@ template <class TArray> void findHorizontalBoundaries(TArray &array, double &lef
     for(unsigned int i=0; i < array.size(); i++)
     {
         obj* x = array[i];
-        if(x->m_x < lefter)
+        if(x->left() < lefter)
         {
-            lefter = x->m_x;
+            lefter = x->left();
             if(leftest)
                 *leftest = x;
         }
-        if(x->m_x+x->m_w > righter)
+        if(x->right() > righter)
         {
-            righter = x->m_x + x->m_w;
+            righter = x->right();
             if(rightest)
                 *rightest = x;
         }
@@ -693,6 +693,7 @@ void MiniPhysics::processCollisions()
                                 speedNum += 1.0;
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
+                            l_clifCheck.push_back(&objs[i]);
                             collideAtBottom = &objs[i];
                             objs[i].m_touch = contactAt;
                             if(pl.m_onSlopeCeiling)
@@ -901,6 +902,7 @@ void MiniPhysics::processCollisions()
                                 speedNum += 1.0;
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
+                            l_clifCheck.push_back(&objs[i]);
                             if(pl.m_onSlopeCeiling)
                             {
                                 if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
@@ -973,6 +975,7 @@ void MiniPhysics::processCollisions()
                                 speedNum += 1.0;
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
+                            l_clifCheck.push_back(&objs[i]);
                             if(pl.m_onSlopeCeiling)
                             {
                                 if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
@@ -1197,8 +1200,7 @@ void MiniPhysics::processCollisions()
 
         if(pl.m_crushed && pl.m_crushedOld )
         {
-            printf("WAAAAAAA@!!!#!#\n");
-            fflush(stdout);
+            /*HELP ME TO AVOID THIS CRAP!!!!*/
         }
 
     }
@@ -1233,18 +1235,19 @@ void MiniPhysics::processCollisions()
     if(doCliffCheck && !l_clifCheck.empty())
     {
         obj* candidate = l_clifCheck[0];
-        double lefter  = candidate->m_x;
-        double righter = candidate->m_x+candidate->m_w;
+        double lefter  = candidate->left();
+        double righter = candidate->right();
         findHorizontalBoundaries(l_clifCheck, lefter, righter);
-        if((pl.m_velX_source <= 0.0) && (lefter > pl.centerX()) )
+        if((pl.m_velX_source <= 0.0) && (lefter >= pl.centerX()) )
             pl.m_cliff = true;
-        if((pl.m_velX_source >= 0.0) && (righter < pl.centerX()) )
+        if((pl.m_velX_source >= 0.0) && (righter <= pl.centerX()) )
             pl.m_cliff = true;
     } else {
         if(!pl.m_stand)
             l_clifCheck.clear();
     }
 
+    /* ****************************Detection of the crush****************************** */
     if(collideAtBottom && collideAtTop)
     {
         //If character got crushed between moving layers
@@ -1258,10 +1261,12 @@ void MiniPhysics::processCollisions()
             #ifdef STOP_LOOP_ON_CRUSH
             alive = false;
             #endif
-            /***************************************************************************
-             * Here must be check "is floor block solid and with no top-only block"
-             * kill character. Similar must be implemented for a wall crushing
-             ***************************************************************************/
+            if( (collideAtTop->m_blocked[pl.m_filterID]==obj::Block_ALL) &&
+                (collideAtBottom->m_blocked[pl.m_filterID]==obj::Block_ALL) )
+            {
+                printf("CRUSHED BETWEEN VERTICAL!!!\n");
+                fflush(stdout);
+            }
         }
     }
 
@@ -1273,12 +1278,15 @@ void MiniPhysics::processCollisions()
             #ifdef STOP_LOOP_ON_CRUSH
             alive = false;
             #endif
-            /***************************************************************************
-             * Here must be check "is floor block solid and with no top-only block"
-             * kill character. Similar must be implemented for a wall crushing
-             ***************************************************************************/
+            if( (collideAtLeft->m_blocked[pl.m_filterID]==obj::Block_ALL) &&
+                (collideAtRight->m_blocked[pl.m_filterID]==obj::Block_ALL) )
+            {
+                printf("CRUSHED BETWEEN HORIZONTAL!!!\n");
+                fflush(stdout);
+            }
         }
     }
+    /* ****************************************************************************** */
 
     if( (speedNum > 1.0) && (speedSum != 0.0) )
     {
@@ -1300,12 +1308,6 @@ void MiniPhysics::loop()
     #endif
     cameraX = pl.centerX()-width()/2.0;
     repaint();
-    /*
-    if(pl.m_crushed && pl.m_crushedOld)
-    {
-        printf("OOOOOOOOOUCH!\n");
-        fflush(stdout);
-    }*/
 }
 
 void MiniPhysics::keyPressEvent(QKeyEvent *event)
