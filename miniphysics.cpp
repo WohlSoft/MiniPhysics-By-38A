@@ -721,6 +721,25 @@ void MiniPhysics::processCollisions()
                             if((objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) == 0)
                                 goto tipRectB_Skip;
 
+                            /* ************************************************************
+                             * Aligned contact check to allow catching hole on the ceiling
+                             * by thrown up NPCs. This makes inability to catch hole on the
+                             * wall while flying up. But still be able catch hole on the wall
+                             * while falling down.
+                             * Ignore this code part when gravitation is directed to up
+                             **************************************************************/
+                            if(round(objs[i].right())-1.0 < round(pl.left()))
+                            {
+                                pl.m_x = round(pl.m_x);
+                                goto tipRectB_Skip;
+                            }
+                            if(round(objs[i].left())+1.0 > round(pl.right()))
+                            {
+                                pl.m_x = round(pl.m_x);
+                                goto tipRectB_Skip;
+                            }
+                            /* *************************************************************/
+
                             pl.m_y = objs[i].m_y + objs[i].m_h;
                             pl.m_velY = objs[i].m_velY;
                             contactAt = obj::Contact_Bottom;
@@ -848,6 +867,7 @@ void MiniPhysics::processCollisions()
                     switch(objs[i].m_id)
                     {
                     case obj::SL_LeftBottom:
+                        /* *************** Resolve collision with corner on the top ********************************* */
                         if( (pl.left() <= objs[i].left()) && (pl.m_onSlopeFloorTopAlign || (pl.m_velY >= 0.0) ) )
                         {
                             if( pl.bottom() > objs[i].bottom())
@@ -855,6 +875,7 @@ void MiniPhysics::processCollisions()
                             if( (pl.bottom() >= objs[i].top()) && ((pl.left() < objs[i].left()) || (pl.m_velX <= 0.0)) )
                                 goto tipRectT;
                         }
+                        /* *************** Resolve collision with footer corner on right bottom side **************** */
                         else if( ( pl.bottom() > objs[i].bottom() ) &&
                                 ((!pl.m_onSlopeFloorOld && (pl.bottomOld() > objs[i].bottomOld())) ||
                                   ((pl.m_onSlopeFloorShape != objs[i].m_id)&&(pl.m_onSlopeFloorShape >=0))
@@ -877,6 +898,7 @@ void MiniPhysics::processCollisions()
                                 }
                             }
                         }
+                        /* ********************* Resolve collision with top slope surface *************************** */
                         else if( pl.bottom() > objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k) - 1 )
                         {
                             if((objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) == 0)
@@ -924,6 +946,7 @@ void MiniPhysics::processCollisions()
                         }
                         break;
                     case obj::SL_RightBottom:
+                        /* *************** Resolve collision with corner on the right top ************************* */
                         if( pl.right() >= objs[i].right() && (pl.m_onSlopeFloorTopAlign || (pl.m_velY >= 0.0) ))
                         {
                             if( pl.bottom() > objs[i].bottom())
@@ -931,6 +954,7 @@ void MiniPhysics::processCollisions()
                             if( (pl.bottom() >= objs[i].top()) && ((pl.right() > objs[i].right()) || (pl.m_velX >= 0.0)) )
                                 goto tipRectT;
                         }
+                        /* ************** Resolve collision with footer corner on left bottom side **************** */
                         else if( ( pl.bottom() > objs[i].bottom() ) &&
                                 ((!pl.m_onSlopeFloorOld && (pl.bottomOld() > objs[i].bottomOld())) ||
                                   ((pl.m_onSlopeFloorShape != objs[i].m_id)&&(pl.m_onSlopeFloorShape >=0))
@@ -953,6 +977,7 @@ void MiniPhysics::processCollisions()
                                 }
                             }
                         }
+                        /* ********************* Resolve collision with top slope surface *************************** */
                         else if(pl.bottom() > objs[i].m_y + ((objs[i].right() - pl.m_x - pl.m_w) * k) - 1 )
                         {
                             if((objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) == 0)
@@ -998,6 +1023,7 @@ void MiniPhysics::processCollisions()
                         }
                         break;
                     case obj::SL_LeftTop:
+                        /* *************** Resolve collision with corner on the left bottom ************************* */
                         if( pl.left() <= objs[i].left() )
                         {
                             if( pl.top() < objs[i].top() )
@@ -1005,6 +1031,7 @@ void MiniPhysics::processCollisions()
                             if( (pl.top() < objs[i].bottom()) && ((pl.left() < objs[i].left()) || (pl.m_velX <= 0.0)) )
                                 goto tipRectB;
                         }
+                        /* ****************** Resolve collision with upper corner on left top side ****************** */
                         else if( ( pl.top() < objs[i].top() )  &&
                                  ((!pl.m_onSlopeCeilingOld && (pl.topOld() < objs[i].topOld())) ||
                                    (pl.m_onSlopeCeilingShape != objs[i].m_id)) )
@@ -1026,6 +1053,7 @@ void MiniPhysics::processCollisions()
                                 }
                             }
                         }
+                        /* ********************* Resolve collision with bottom slope surface *************************** */
                         else if(pl.m_y < objs[i].bottom() - ((pl.m_x - objs[i].m_x) * k) )
                         {
                             if((objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) == 0)
@@ -1062,6 +1090,7 @@ void MiniPhysics::processCollisions()
                         }
                         break;
                     case obj::SL_RightTop:
+                        /* *************** Resolve collision with corner on the right bottom ************************* */
                         if(pl.right() >= objs[i].right())
                         {
                             if( pl.top() < objs[i].top())
@@ -1069,6 +1098,7 @@ void MiniPhysics::processCollisions()
                             if( (pl.m_y < objs[i].bottom()) && ((pl.right() > objs[i].right()) || (pl.m_velX >= 0.0)) )
                                 goto tipRectB;
                         }
+                        /* ****************** Resolve collision with upper corner on right top side ****************** */
                         else if( ( pl.top() < objs[i].top() )  &&
                                  ((!pl.m_onSlopeCeilingOld && (pl.topOld() < objs[i].topOld())) ||
                                    (pl.m_onSlopeCeilingShape != objs[i].m_id)) )
@@ -1090,6 +1120,7 @@ void MiniPhysics::processCollisions()
                                 }
                             }
                         }
+                        /* ********************* Resolve collision with bottom slope surface *************************** */
                         else if(pl.m_y < objs[i].bottom() - ((objs[i].right() - pl.m_x - pl.m_w) * k))
                         {
                             if((objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) == 0)
@@ -1128,6 +1159,12 @@ void MiniPhysics::processCollisions()
                         break;
                     }
 
+                    /* ***** If slope block being detected, restart loop from begin and then skip this element *******
+                     * this is VERY important, because just resolved ceiling or floor collision will be missed
+                     * after resolving of the slope collision which makes glitch.
+                     * To have accurate result need re-check collisions with all previous elements
+                     * after resolving slope collision
+                     * ***********************************************************************************************/
                     if( (contactAt != obj::Contact_None) && (contactAt != obj::Contact_Skipped) )
                     {
                         blockSkipI = i;
@@ -1142,6 +1179,7 @@ void MiniPhysics::processCollisions()
                 //If shape is not rectangle - check triangular collision
                 if( objs[i].m_id != obj::SL_Rect )
                     goto tipTriangleShape;
+
                 //Catching 90-degree angle impacts of corners with rectangles
                 if( !colH && !colV )
                 {
