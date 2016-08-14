@@ -49,7 +49,16 @@ public:
         Contact_Top,
         Contact_Bottom,
         Contact_Left,
-        Contact_Right
+        Contact_Right,
+        Contact_Skipped
+    };
+    enum BlockedSides{
+        Block_NONE      = 0,
+        Block_LEFT      = 0x1,
+        Block_TOP       = 0x2,
+        Block_RIGHT     = 0x4,
+        Block_BOTTOM    = 0x8,
+        Block_ALL       = 0xF,
     };
 
     obj(int x=0, int y=0, int id=0) :
@@ -84,7 +93,9 @@ public:
         m_onSlopeCeilingOld(false),
         m_onSlopeCeilingShape(0),
         m_onSlopeCeilingRect{0.0, 0.0, 0.0, 0.0},
-        m_onSlopeYAdd(0.0)
+        m_onSlopeYAdd(0.0),
+        m_blocked{Block_ALL, Block_ALL},
+        m_filterID(0)
     {}
     obj(const obj& o) :
         m_id(o.m_id),
@@ -118,7 +129,9 @@ public:
         m_onSlopeCeilingOld(o.m_onSlopeCeilingOld),
         m_onSlopeCeilingShape(o.m_onSlopeCeilingShape),
         m_onSlopeCeilingRect(o.m_onSlopeCeilingRect),
-        m_onSlopeYAdd(o.m_onSlopeYAdd)
+        m_onSlopeYAdd(o.m_onSlopeYAdd),
+        m_blocked{o.m_blocked[0], o.m_blocked[1]},
+        m_filterID(o.m_filterID)
     {}
 
     void paint(QPainter &p, double cameraX, double cameraY)
@@ -126,6 +139,7 @@ public:
         double x = round(m_x-cameraX);
         double y = round(m_y-cameraY);
         p.setBrush(Qt::gray);
+        p.setOpacity(m_blocked[0]==Block_ALL ? 1.0 : 0.5 );
         if(m_crushed && m_crushedOld)
         {
             p.setBrush(Qt::red);
@@ -260,6 +274,8 @@ public:
     int     m_onSlopeCeilingShape;
     objRect m_onSlopeCeilingRect;
     double  m_onSlopeYAdd;
+    int     m_blocked[2];
+    int     m_filterID;
 };
 
 struct LevelData;

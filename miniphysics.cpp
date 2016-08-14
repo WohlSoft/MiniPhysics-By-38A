@@ -93,6 +93,7 @@ void MiniPhysics::initTestCommon(LevelData *fileP)
     for(int i=0; i<file.blocks.size(); i++)
     {
         int id = 0;
+        int blockSide = obj::Block_ALL;
         LevelBlock& blk = file.blocks[i];
         switch(blk.id)
         {
@@ -100,11 +101,25 @@ void MiniPhysics::initTestCommon(LevelData *fileP)
             case 359: case 360: case 319: id = obj::SL_LeftBottom;    break;
             case 363: case 364: id = obj::SL_LeftTop;       break;
             case 362: case 361: id = obj::SL_RightTop;      break;
+            case 366:
+            id = obj::SL_LeftBottom;
+            blockSide = obj::Block_TOP; break;
+            case 495:
+            blockSide = obj::Block_RIGHT;
+            id = obj::SL_Rect; break;
+            case 25: case 575:
+            blockSide = obj::Block_TOP;
+            id = obj::SL_Rect; break;
+            case 500:
+            blockSide = obj::Block_BOTTOM;
+            id = obj::SL_Rect; break;
             default:    id = obj::SL_Rect;                  break;
         }
         obj box(blk.x, blk.y, id);
         box.m_w = blk.w;
         box.m_h = blk.h;
+        box.m_blocked[0] = blockSide;
+        box.m_blocked[1] = blockSide;
         objs.push_back(box);
         if(blk.id == 159)
             movingBlock.push_back(&objs.last());
@@ -666,6 +681,8 @@ void MiniPhysics::processCollisions()
                         if( isBlockFloor(&objs[i]))
                         {
                     tipRectT://Impacted at top of block (bottom of player)
+                            if((objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) == 0)
+                                goto tipRectT_Skip;
                             pl.m_y = objs[i].m_y - pl.m_h;
                             pl.m_velY   = objs[i].m_velY;
                             pl.m_stand  = true;
@@ -692,11 +709,15 @@ void MiniPhysics::processCollisions()
                                 }
                             }
                         }
+                    tipRectT_Skip:;
                     } else {
                         //'bottom
                         if( isBlockCeiling(&objs[i]) )
                         {
                     tipRectB://Impacted at bottom of block (top of player)
+                            if((objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) == 0)
+                                goto tipRectB_Skip;
+
                             pl.m_y = objs[i].m_y + objs[i].m_h;
                             pl.m_velY = objs[i].m_velY;
                             contactAt = obj::Contact_Bottom;
@@ -716,7 +737,7 @@ void MiniPhysics::processCollisions()
                                     speedNum = 0.0;
                                 }
                             }
-                    //tipRectB_Skip:;
+                    tipRectB_Skip:;
                         }
                     }
                 } else {
@@ -741,6 +762,9 @@ void MiniPhysics::processCollisions()
                             }
                     tipRectL://Impacted at left (right of player)
                             {
+                                if((objs[i].m_blocked[pl.m_filterID]&obj::Block_LEFT) == 0)
+                                    goto tipRectL_Skip;
+
                                 if(pl.m_allowHoleRuning)
                                 {
                                     if( (pl.bottom() < (objs[i].top() + 2.0)) &&
@@ -749,7 +773,6 @@ void MiniPhysics::processCollisions()
                                         goto tipRectT;
                                 }
                                 pl.m_x = objs[i].m_x - pl.m_w;
-                                //pl.m_touchLeftWall = objs[i].betweenV(pl.centerY());
                                 double &splr = pl.m_velX;
                                 double &sbox = objs[i].m_velX;
                                 xSpeedWasReversed = splr <= sbox;
@@ -781,6 +804,9 @@ void MiniPhysics::processCollisions()
                             }
                     tipRectR://Impacted at right (left of player)
                             {
+                                if((objs[i].m_blocked[pl.m_filterID]&obj::Block_RIGHT) == 0)
+                                    goto tipRectR_Skip;
+
                                 if(pl.m_allowHoleRuning)
                                 {
                                     if( (pl.bottom() < (objs[i].top() + 2.0)) &&
@@ -789,7 +815,6 @@ void MiniPhysics::processCollisions()
                                         goto tipRectT;
                                 }
                                 pl.m_x = objs[i].m_x + objs[i].m_w;
-                                //pl.m_touchRightWall = objs[i].betweenV(pl.centerY());
                                 double &splr = pl.m_velX;
                                 double &sbox = objs[i].m_velX;
                                 xSpeedWasReversed = splr >= sbox;
@@ -804,11 +829,16 @@ void MiniPhysics::processCollisions()
                         }
                     }
                 }
+
                 if( (pl.m_stand) || (pl.m_velX_source == 0.0) || xSpeedWasReversed)
                     tm = -2;
+
         tipTriangleShape://Check triangular collision
                 if(contactAt == obj::Contact_None)
                 {
+                    //Avoid infinite loop for case of skipped collision resolving
+                    contactAt=obj::Contact_Skipped;
+
                     k = objs[i].m_h / objs[i].m_w;
                     switch(objs[i].m_id)
                     {
@@ -844,6 +874,9 @@ void MiniPhysics::processCollisions()
                         }
                         else if( pl.bottom() > objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k) - 1 )
                         {
+                            if((objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) == 0)
+                                goto skipTriangleResolving;
+
                             pl.m_y = objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k ) - pl.m_h;
                             pl.m_velY = objs[i].m_velY;
                             pl.m_onSlopeFloor = true;
@@ -868,8 +901,6 @@ void MiniPhysics::processCollisions()
                                 speedNum += 1.0;
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
-                            //standingOn = &objs[i];
-                            //l_slopeFloor.push_back(&objs[i]);
                             if(pl.m_onSlopeCeiling)
                             {
                                 if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
@@ -917,6 +948,9 @@ void MiniPhysics::processCollisions()
                         }
                         else if(pl.bottom() > objs[i].m_y + ((objs[i].right() - pl.m_x - pl.m_w) * k) - 1 )
                         {
+                            if((objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) == 0)
+                                goto skipTriangleResolving;
+
                             pl.m_y = objs[i].m_y + ( (objs[i].right() - pl.m_x - pl.m_w) * k) - pl.m_h;
                             pl.m_velY = objs[i].m_velY;
                             pl.m_onSlopeFloor = true;
@@ -939,8 +973,6 @@ void MiniPhysics::processCollisions()
                                 speedNum += 1.0;
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
-                            //standingOn = &objs[i];
-                            //l_slopeFloor.push_back(&objs[i]);
                             if(pl.m_onSlopeCeiling)
                             {
                                 if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
@@ -987,6 +1019,9 @@ void MiniPhysics::processCollisions()
                         }
                         else if(pl.m_y < objs[i].bottom() - ((pl.m_x - objs[i].m_x) * k) )
                         {
+                            if((objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) == 0)
+                                goto skipTriangleResolving;
+
                             double oldY = pl.m_oldy;
                             pl.m_y    = objs[i].bottom() - ((pl.m_x - objs[i].m_x) * k);
                             pl.m_velY = fabs(oldY-pl.m_y);
@@ -1047,6 +1082,9 @@ void MiniPhysics::processCollisions()
                         }
                         else if(pl.m_y < objs[i].bottom() - ((objs[i].right() - pl.m_x - pl.m_w) * k))
                         {
+                            if((objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) == 0)
+                                goto skipTriangleResolving;
+
                             double oldY = pl.m_oldy;
                             pl.m_y    = objs[i].bottom() - ((objs[i].right() - pl.m_x - pl.m_w) * k);
                             if( pl.m_velX > 0.0)
@@ -1088,6 +1126,8 @@ void MiniPhysics::processCollisions()
                         blockSkip = true;
                     }
                 }
+            skipTriangleResolving:;
+
             } else {
                 //If shape is not rectangle - check triangular collision
                 if( objs[i].m_id != obj::SL_Rect )
@@ -1112,7 +1152,9 @@ void MiniPhysics::processCollisions()
         /* ********************Find wall touch blocks************************ */
         if( figureTouch(pl, objs[i], 0.0, -1.0) )
         {
-            if(pl.betweenV( objs[i].centerY() ) && (objs[i].m_id == obj::SL_Rect) )
+            if( pl.betweenV( objs[i].centerY() ) &&
+                (objs[i].m_id == obj::SL_Rect) &&
+                (objs[i].m_blocked[pl.m_filterID]==obj::Block_ALL) )
             {
                 if(pl.centerX() < objs[i].centerX())
                 {
@@ -1144,7 +1186,10 @@ void MiniPhysics::processCollisions()
             break;
         }
 
-        if( (objs[i].m_id == obj::SL_Rect) && recttouch(pl.m_oldx, pl.m_oldy, pl.m_w, pl.m_h, objs[i].m_oldx, objs[i].m_oldy, objs[i].m_w, objs[i].m_h) )
+        if( (objs[i].m_id == obj::SL_Rect) &&
+            (objs[i].m_blocked[pl.m_filterID]==obj::Block_ALL) &&
+            recttouch(pl.m_oldx,      pl.m_oldy,        pl.m_w,      pl.m_h,
+                      objs[i].m_oldx, objs[i].m_oldy,   objs[i].m_w, objs[i].m_h) )
         {
             l_possibleCrushers.push_back(&objs[i]);
             pl.m_crushed = true;
