@@ -4,9 +4,14 @@
 A tiny physical engine made by 5438A38A in VB6 and ported into C++ with Qt and improved by Wohlstand
 
 This engine demo implements a classical platform game physics. Such a:
-* Rectangular blocks
-* Truangular slope blocks (floor and ceiling)
+* Rectangular blocks of any size
+* Truangular slope blocks of any size (floor and ceiling). Auto-align character's Y position at top corner of slope while walking up on it.
 * Speed-adding stack (adding speed to objects staying on moving other)
+* Collision filters to block character movement at one of sides and pass character at others
+* Overlapping detection (character will be painted red) when player is touches inside boundaries area of the solid blocks
+* Crush detection when two moving solid boxes will crush at top and bottom, or at left and right
+* Cliff detection when character is about edge, on both rectanglar and trianglar blocks
+* Touched blocks detection to process special actions from touching of the special blocks (for example, hurt player or NPC on touching a danger surfaces)
 
 # Download
 [Working demo for Win32 can be got here](http://wohlsoft.ru/docs/_laboratory/_Builds/win32/mini-physics/mini-physics-demo-win32.zip)
