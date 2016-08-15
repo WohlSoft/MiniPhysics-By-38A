@@ -212,28 +212,6 @@ void MiniPhysics::iterateStep()
         initTest2();
     }
 
-    if(keyMap[Qt::Key_1])
-    {
-        keyMap[Qt::Key_1]=false;
-        pl.m_y += pl.m_h-30;
-        pl.m_w = 24;
-        pl.m_h = 30;
-    }
-    if(keyMap[Qt::Key_2])
-    {
-        keyMap[Qt::Key_2]=false;
-        pl.m_y += pl.m_h-32;
-        pl.m_w = 32;
-        pl.m_h = 32;
-    }
-    if(keyMap[Qt::Key_3])
-    {
-        keyMap[Qt::Key_3]=false;
-        pl.m_y += pl.m_h-50;
-        pl.m_w = 24;
-        pl.m_h = 50;
-    }
-
     if(keyMap[Qt::Key_Q])
     {
         keyMap[Qt::Key_Q] = false;
@@ -355,6 +333,31 @@ void MiniPhysics::iterateStep()
             pl.m_onSlopeFloorShape = -1;
         if(!pl.m_onSlopeCeilingOld)
             pl.m_onSlopeCeilingShape = -1;
+
+        if(keyMap[Qt::Key_1])
+        {
+            keyMap[Qt::Key_1]=false;
+            pl.m_y += pl.m_h-30;
+            pl.m_oldx = pl.m_oldx-(24-pl.m_w);
+            pl.m_w = 24;
+            pl.m_h = 30;
+        }
+        if(keyMap[Qt::Key_2])
+        {
+            keyMap[Qt::Key_2]=false;
+            pl.m_y += pl.m_h-32;
+            pl.m_oldx = pl.m_oldx-(32-pl.m_w);
+            pl.m_w = 32;
+            pl.m_h = 32;
+        }
+        if(keyMap[Qt::Key_3])
+        {
+            keyMap[Qt::Key_3]=false;
+            pl.m_y += pl.m_h-50;
+            pl.m_oldx = pl.m_oldx-(24-pl.m_w);
+            pl.m_w = 24;
+            pl.m_h = 50;
+        }
     }
 
 }
