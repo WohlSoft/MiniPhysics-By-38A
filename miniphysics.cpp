@@ -4,6 +4,7 @@
 #include <QMessageBox>
 #include <QApplication>
 #include <QFile>
+#include <assert.h>
 
 #include "PGE_File_Formats/file_formats.h"
 
@@ -118,6 +119,8 @@ void MiniPhysics::initTestCommon(LevelData *fileP)
         obj box(blk.x, blk.y, id);
         box.m_w = blk.w;
         box.m_h = blk.h;
+        box.m_oldw = blk.w;
+        box.m_oldh = blk.h;
         box.m_blocked[0] = blockSide;
         box.m_blocked[1] = blockSide;
         objs.push_back(box);
@@ -267,10 +270,13 @@ void MiniPhysics::iterateStep()
         pl.m_touchRightWall = false;
         pl.m_crushedOld = pl.m_crushed;
         pl.m_crushed    = false;
+        pl.m_crushedHard = false;
         pl.m_cliff      = false;
 
         pl.m_oldx = pl.m_x;
         pl.m_oldy = pl.m_y;
+        pl.m_oldw = pl.m_w;
+        pl.m_oldh = pl.m_h;
         pl.m_x += pl.m_velX;
         pl.m_y += pl.m_velY;
 
@@ -289,30 +295,30 @@ void MiniPhysics::iterateStep()
         if(keyMap[Qt::Key_1])
         {
             keyMap[Qt::Key_1]=false;
-            if(pl.m_stand)
-                pl.m_oldy += pl.m_h-30;
+            //if(pl.m_stand)
+            //    pl.m_oldy += pl.m_h-30;
             pl.m_y += pl.m_h-30;
-            pl.m_oldx = pl.m_oldx-(24-pl.m_w);
+            //pl.m_oldx = pl.m_oldx-(24-pl.m_w);
             pl.m_w = 24;
             pl.m_h = 30;
         }
         if(keyMap[Qt::Key_2])
         {
             keyMap[Qt::Key_2]=false;
-            if(pl.m_stand)
-                pl.m_oldy += pl.m_h-32;
+            //if(pl.m_stand)
+            //    pl.m_oldy += pl.m_h-32;
             pl.m_y += pl.m_h-32;
-            pl.m_oldx = pl.m_oldx-(32-pl.m_w);
+            //pl.m_oldx = pl.m_oldx-(32-pl.m_w);
             pl.m_w = 32;
             pl.m_h = 32;
         }
         if(keyMap[Qt::Key_3])
         {
             keyMap[Qt::Key_3]=false;
-            if(pl.m_stand)
-                pl.m_oldy += pl.m_h-50;
+            //if(pl.m_stand)
+            //    pl.m_oldy += pl.m_h-50;
             pl.m_y += pl.m_h-50;
-            pl.m_oldx = pl.m_oldx-(24-pl.m_w);
+            //pl.m_oldx = pl.m_oldx-(24-pl.m_w);
             pl.m_w = 24;
             pl.m_h = 50;
         }
@@ -707,8 +713,8 @@ void MiniPhysics::processCollisions()
     tipRectShape://Recheck rectangular collision
         if( pt(pl.m_x, pl.m_y, pl.m_w, pl.m_h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h))
         {
-            colH = pt(pl.m_x,     pl.m_oldy,  pl.m_w, pl.m_h,     objs[i].m_x,    objs[i].m_oldy, objs[i].m_w, objs[i].m_h);
-            colV = pt(pl.m_oldx,  pl.m_y,     pl.m_w, pl.m_h,     objs[i].m_oldx, objs[i].m_y,    objs[i].m_w, objs[i].m_h);
+            colH = pt(pl.m_x,     pl.m_oldy,  pl.m_w, pl.m_oldh,     objs[i].m_x,    objs[i].m_oldy, objs[i].m_w, objs[i].m_oldh);
+            colV = pt(pl.m_oldx,  pl.m_y,     pl.m_oldw, pl.m_h,     objs[i].m_oldx, objs[i].m_y,    objs[i].m_oldw, objs[i].m_h);
             if( colH ^ colV )
             {
                 if(!colH)
@@ -1073,7 +1079,7 @@ void MiniPhysics::processCollisions()
                                 {
                                     if(pl.m_velY < objs[i].m_velY)
                                         goto skipTriangleResolving;
-                                    if( (pl.bottomOld() > objs[i].m_oldy + ((objs[i].rightOld() - pl.m_oldx - pl.m_w) * k) - 0) )
+                                    if( (pl.bottomOld() > objs[i].m_oldy + ((objs[i].rightOld() - pl.m_oldx - pl.m_oldw) * k) - 0) )
                                         goto skipTriangleResolving;
                                 }
                             }
@@ -1381,8 +1387,8 @@ void MiniPhysics::processCollisions()
 
         if( (objs[i].m_id == obj::SL_Rect) &&
             (objs[i].m_blocked[pl.m_filterID]==obj::Block_ALL) &&
-            recttouch(pl.m_oldx,      pl.m_oldy,        pl.m_w,      pl.m_h,
-                      objs[i].m_oldx, objs[i].m_oldy,   objs[i].m_w, objs[i].m_h) )
+            recttouch(pl.m_oldx,      pl.m_oldy,        pl.m_oldw,      pl.m_oldh,
+                      objs[i].m_oldx, objs[i].m_oldy,   objs[i].m_oldw, objs[i].m_oldh) )
         {
             l_possibleCrushers.push_back(&objs[i]);
             pl.m_crushed = true;
@@ -1503,6 +1509,7 @@ void MiniPhysics::processCollisions()
             if( (collideAtTop->m_blocked[pl.m_filterID]==obj::Block_ALL) &&
                 (collideAtBottom->m_blocked[pl.m_filterID]==obj::Block_ALL) )
             {
+                pl.m_crushedHard = true;
                 printf("CRUSHED BETWEEN VERTICAL!!!\n");
                 fflush(stdout);
             }
@@ -1520,6 +1527,7 @@ void MiniPhysics::processCollisions()
             if( (collideAtLeft->m_blocked[pl.m_filterID]==obj::Block_ALL) &&
                 (collideAtRight->m_blocked[pl.m_filterID]==obj::Block_ALL) )
             {
+                pl.m_crushedHard = true;
                 printf("CRUSHED BETWEEN HORIZONTAL!!!\n");
                 fflush(stdout);
             }

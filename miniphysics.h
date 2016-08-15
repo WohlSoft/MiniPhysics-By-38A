@@ -81,6 +81,8 @@ public:
         m_oldy(y),
         m_w(32.0),
         m_h(32.0),
+        m_oldw(32.0),
+        m_oldh(32.0),
         m_velX(0.0),
         m_velX_source(0.0),
         m_velY(0.0),
@@ -90,6 +92,7 @@ public:
         m_standOnYMovable(false),
         m_crushed(false),
         m_crushedOld(false),
+        m_crushedHard(false),
         m_drawSpeed(false),
         m_bumped(false),
         m_cliff(false),
@@ -118,6 +121,8 @@ public:
         m_oldy(o.m_oldy),
         m_w(o.m_w),
         m_h(o.m_h),
+        m_oldw(o.m_oldw),
+        m_oldh(o.m_oldh),
         m_velX(o.m_velX),
         m_velX_source(o.m_velX_source),
         m_velY(o.m_velY),
@@ -127,6 +132,7 @@ public:
         m_standOnYMovable(o.m_standOnYMovable),
         m_crushed(o.m_crushed),
         m_crushedOld(o.m_crushedOld),
+        m_crushedHard(o.m_crushedHard),
         m_drawSpeed(o.m_drawSpeed),
         m_bumped(o.m_bumped),
         m_cliff(o.m_cliff),
@@ -155,9 +161,9 @@ public:
         p.setBrush(Qt::gray);
         p.setOpacity(m_blocked[0]==Block_ALL ? 1.0 : 0.5 );
         if(m_crushed && m_crushedOld)
-        {
+            p.setBrush(QColor("#FFA500"));
+        if(m_crushedHard)
             p.setBrush(Qt::red);
-        }
         if(m_touch != Contact_None)
         {
             switch(m_touch)
@@ -244,12 +250,12 @@ public:
     inline  double bottom() { return m_y + m_h; }
     inline  double topOld()    { return m_oldy; }
     inline  double leftOld()   { return m_oldx; }
-    inline  double rightOld()  { return m_oldx + m_w; }
-    inline  double bottomOld() { return m_oldy + m_h; }
+    inline  double rightOld()  { return m_oldx + m_oldw; }
+    inline  double bottomOld() { return m_oldy + m_oldh; }
     inline  double centerX() { return m_x + m_w/2.0; }
     inline  double centerY() { return m_y + m_h/2.0; }
-    inline  double centerXold() { return m_oldx + m_w/2.0; }
-    inline  double centerYold() { return m_oldy + m_h/2.0; }
+    inline  double centerXold() { return m_oldx + m_oldw/2.0; }
+    inline  double centerYold() { return m_oldy + m_oldh/2.0; }
     inline  bool   betweenH(double left, double right) { if(right < m_x) return false; if(left > m_x+m_w) return false; return true; }
     inline  bool   betweenH(double X) { return (X >= m_x) && (X <= m_x+m_w); }
     inline  bool   betweenV(double top, double bottom) { if(bottom < m_y) return false; if(top > m_y+m_h) return false; return true; }
@@ -261,6 +267,8 @@ public:
     double  m_oldy;
     double  m_w;
     double  m_h;
+    double  m_oldw;
+    double  m_oldh;
     double  m_velX;
     double  m_velX_source;
     double  m_velY;
@@ -270,6 +278,7 @@ public:
     bool    m_standOnYMovable;
     bool    m_crushed;
     bool    m_crushedOld;
+    bool    m_crushedHard;
     bool    m_drawSpeed;
     bool    m_bumped;
     bool    m_cliff;
