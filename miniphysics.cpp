@@ -145,52 +145,6 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
-template <class TArray> void findHorizontalBoundaries(TArray &array, double &lefter, double &righter,
-                                                      obj**leftest=nullptr, obj**rightest=nullptr)
-{
-    if(array.empty())
-        return;
-    for(unsigned int i=0; i < array.size(); i++)
-    {
-        obj* x = array[i];
-        if(x->left() < lefter)
-        {
-            lefter = x->left();
-            if(leftest)
-                *leftest = x;
-        }
-        if(x->right() > righter)
-        {
-            righter = x->right();
-            if(rightest)
-                *rightest = x;
-        }
-    }
-}
-
-template <class TArray> void findVerticalBoundaries(TArray &array, double &higher, double &lower,
-                                                    obj**highest=nullptr, obj**lowerest=nullptr)
-{
-    if(array.isEmpty())
-        return;
-    for(int i=0; i < array.size(); i++)
-    {
-        obj* x = array[i];
-        if(x->m_y < higher)
-        {
-            higher = x->m_y;
-            if(highest)
-                *highest = x;
-        }
-        if(x->m_y + x->m_h > lower)
-        {
-            lower = x->m_y + x->m_h;
-            if(lowerest)
-                *lowerest = x;
-        }
-    }
-}
-
 void MiniPhysics::iterateStep()
 {
     if(keyMap[Qt::Key_F1])
@@ -311,8 +265,6 @@ void MiniPhysics::iterateStep()
 
         pl.m_touchLeftWall  = false;
         pl.m_touchRightWall = false;
-        pl.m_stand      = false;
-        pl.m_standOnYMovable = false;
         pl.m_crushedOld = pl.m_crushed;
         pl.m_crushed    = false;
         pl.m_cliff      = false;
@@ -337,6 +289,8 @@ void MiniPhysics::iterateStep()
         if(keyMap[Qt::Key_1])
         {
             keyMap[Qt::Key_1]=false;
+            if(pl.m_stand)
+                pl.m_oldy += pl.m_h-30;
             pl.m_y += pl.m_h-30;
             pl.m_oldx = pl.m_oldx-(24-pl.m_w);
             pl.m_w = 24;
@@ -345,6 +299,8 @@ void MiniPhysics::iterateStep()
         if(keyMap[Qt::Key_2])
         {
             keyMap[Qt::Key_2]=false;
+            if(pl.m_stand)
+                pl.m_oldy += pl.m_h-32;
             pl.m_y += pl.m_h-32;
             pl.m_oldx = pl.m_oldx-(32-pl.m_w);
             pl.m_w = 32;
@@ -353,13 +309,66 @@ void MiniPhysics::iterateStep()
         if(keyMap[Qt::Key_3])
         {
             keyMap[Qt::Key_3]=false;
+            if(pl.m_stand)
+                pl.m_oldy += pl.m_h-50;
             pl.m_y += pl.m_h-50;
             pl.m_oldx = pl.m_oldx-(24-pl.m_w);
             pl.m_w = 24;
             pl.m_h = 50;
         }
-    }
 
+        pl.m_stand      = false;
+        pl.m_standOnYMovable = false;
+    }
+}
+
+
+
+
+template <class TArray> void findHorizontalBoundaries(TArray &array, double &lefter, double &righter,
+                                                      obj**leftest=nullptr, obj**rightest=nullptr)
+{
+    if(array.empty())
+        return;
+    for(unsigned int i=0; i < array.size(); i++)
+    {
+        obj* x = array[i];
+        if(x->left() < lefter)
+        {
+            lefter = x->left();
+            if(leftest)
+                *leftest = x;
+        }
+        if(x->right() > righter)
+        {
+            righter = x->right();
+            if(rightest)
+                *rightest = x;
+        }
+    }
+}
+
+template <class TArray> void findVerticalBoundaries(TArray &array, double &higher, double &lower,
+                                                    obj**highest=nullptr, obj**lowerest=nullptr)
+{
+    if(array.isEmpty())
+        return;
+    for(int i=0; i < array.size(); i++)
+    {
+        obj* x = array[i];
+        if(x->m_y < higher)
+        {
+            higher = x->m_y;
+            if(highest)
+                *highest = x;
+        }
+        if(x->m_y + x->m_h > lower)
+        {
+            lower = x->m_y + x->m_h;
+            if(lowerest)
+                *lowerest = x;
+        }
+    }
 }
 
 static inline bool pt(double x1, double y1, double w1, double h1,
@@ -438,13 +447,30 @@ inline bool isBlockRightWall(obj* block)
            (block->m_id == obj::SL_RightTop);
 }
 
-inline bool findMinimalHeight(int idF, objRect sF,
+/**
+ * @brief Finds minimal available height between slope floor and slope ceiling (and between horizontal block and one of slopes)
+ * @param idF shape of floor
+ * @param sF rectangle of floor
+ * @param vF velocity of floor
+ * @param idC shape of ceiling
+ * @param sC rectangle of ceilig
+ * @param w width of player
+ * @param h height of player
+ * @param [INOUT] x X position of player
+ * @param [INOUT] y Y position of player
+ * @param [INOUT] newSpeedX X-Speed of the player
+ * @param slT is slope top
+ * @param slB is slope bottom
+ * @return true if slope floor<->ceiling collision has been detected and resolved. False if found nothing
+ */
+inline bool findMinimalHeight(int idF, objRect sF, double vF,
                               int idC, objRect sC,
-                              double w, double h, double *x, double *y,
+                              double w, double h, double *x, double *y, double *newSpeedX,
                               bool slT=false, bool slB=false)
 {
     double &posX = *x;
     double &posY = *y;
+    double &velX = *newSpeedX;
     double k1   = sF.h / sF.w;
     double k2   = sC.h / sC.w;
     /***************************Ceiling and floor slopes*******************************/
@@ -461,6 +487,7 @@ inline bool findMinimalHeight(int idF, objRect sF,
             Y2 = sC.bottom() - ((posX - sC.x) * k2);
         }
         posY = Y1;
+        velX = std::max(velX, vF);
         return true;
     }
     else
@@ -477,6 +504,7 @@ inline bool findMinimalHeight(int idF, objRect sF,
             Y2 = sC.bottom() - ((sC.right() - posX - w) * k2);
         }
         posY = Y1;
+        velX = std::min(velX, vF);
         return true;
     }
 
@@ -494,6 +522,7 @@ inline bool findMinimalHeight(int idF, objRect sF,
             Y2 = sC.bottom() - ((posX - sC.x) * k2);
         }
         posY = Y2;
+        velX = (k1 > k2) ? std::min(velX, vF) : std::max(velX, vF);
         return true;
     }
     else
@@ -510,6 +539,7 @@ inline bool findMinimalHeight(int idF, objRect sF,
             Y2 = sC.bottom() - ((sC.right() - posX - w) * k2);
         }
         posY = Y2;
+        velX = (k1 < k2) ? std::min(velX, vF) : std::max(velX, vF);
         return true;
     }
     /***************************Ceiling slope and horizontal floor*******************************/
@@ -524,6 +554,7 @@ inline bool findMinimalHeight(int idF, objRect sF,
             Y2 = sC.bottom() - ((posX - sC.x) * k2);
         }
         posY = Y1;
+        velX = std::max(velX, vF);
         return true;
     }
     else
@@ -537,6 +568,7 @@ inline bool findMinimalHeight(int idF, objRect sF,
             Y2 = sC.bottom() - ((sC.right() - posX - w) * k2);
         }
         posY = Y1;
+        velX = std::min(velX, vF);
         return true;
     }
     /***************************Floor slope and horizontal ceiling*******************************/
@@ -551,6 +583,7 @@ inline bool findMinimalHeight(int idF, objRect sF,
             Y1 = sF.y + ( (posX - sF.x) * k1 ) - h;
         }
         posY = Y2;
+        velX = std::max(velX, vF);
         return true;
     }
     else
@@ -564,6 +597,7 @@ inline bool findMinimalHeight(int idF, objRect sF,
             Y1 = sF.y + ( (sF.right() - posX - w) * k1) - h;
         }
         posY = Y2;
+        velX = std::min(velX, vF);
         return true;
     }
 
@@ -601,6 +635,7 @@ void MiniPhysics::processCollisions()
     obj* collideAtLeft  = nullptr;
     obj* collideAtRight = nullptr;
 
+    bool doSpeedStack = true;
     double speedNum = 0.0;
     double speedSum = 0.0;
 
@@ -621,7 +656,7 @@ void MiniPhysics::processCollisions()
         objs[i].m_bumped = false;
         contactAt = obj::Contact_None;
         /* ********************Collect blocks to hit************************ */
-        if( figureTouch(pl, objs[i], -1.0) )
+        if( figureTouch(pl, objs[i], -1.0, 0.0) )
         {
             if(pl.centerY() < objs[i].centerY())
             {
@@ -691,10 +726,13 @@ void MiniPhysics::processCollisions()
                             pl.m_velY   = objs[i].m_velY;
                             pl.m_stand  = true;
                             pl.m_standOnYMovable = (objs[i].m_velY != 0.0);
-                            pl.m_velX   = pl.m_velX_source + objs[i].m_velX;
-                            speedSum += objs[i].m_velX;
-                            if(objs[i].m_velX != 0.0)
-                                speedNum += 1.0;
+                            if(doSpeedStack)
+                            {
+                                pl.m_velX   = pl.m_velX_source + objs[i].m_velX;
+                                speedSum += objs[i].m_velX;
+                                if(objs[i].m_velX != 0.0)
+                                    speedNum += 1.0;
+                            }
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
                             l_clifCheck.push_back(&objs[i]);
@@ -703,13 +741,13 @@ void MiniPhysics::processCollisions()
                             //objs[i].m_touch = contactAt;
                             if(pl.m_onSlopeCeiling)
                             {
-                                if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
+                                if( findMinimalHeight(objs[i].m_id, objs[i].rect(), objs[i].m_velX,
                                                   pl.m_onSlopeCeilingShape, pl.m_onSlopeCeilingRect,
-                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y,
+                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y, &pl.m_velX_source,
                                                   pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
                                 {
-                                    pl.m_velX_source = 0.0;
                                     pl.m_velX = pl.m_velX_source;
+                                    doSpeedStack = false;
                                     speedSum = 0.0;
                                     speedNum = 0.0;
                                 }
@@ -751,12 +789,12 @@ void MiniPhysics::processCollisions()
                             l_contactT.push_back(&objs[i]);
                             if(pl.m_onSlopeFloor)
                             {
-                                if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect,
+                                if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect, 0.0,
                                                       objs[i].m_id, objs[i].rect(),
-                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y,
+                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y, &pl.m_velX_source,
                                                       pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
                                 {
-                                    pl.m_velX_source = 0.0;
+                                    doSpeedStack = false;
                                     pl.m_velX = pl.m_velX_source;
                                     speedSum = 0.0;
                                     speedNum = 0.0;
@@ -803,6 +841,7 @@ void MiniPhysics::processCollisions()
                                 xSpeedWasReversed = splr <= sbox;
                                 splr = std::min( splr, sbox );
                                 pl.m_velX_source = splr;
+                                doSpeedStack = false;
                                 speedSum = 0.0;
                                 speedNum = 0.0;
                                 contactAt = obj::Contact_Left;
@@ -846,6 +885,7 @@ void MiniPhysics::processCollisions()
                                 xSpeedWasReversed = splr >= sbox;
                                 splr = std::max( splr, sbox );
                                 pl.m_velX_source = splr;
+                                doSpeedStack = false;
                                 speedSum = 0.0;
                                 speedNum = 0.0;
                                 contactAt = obj::Contact_Right;
@@ -925,22 +965,25 @@ void MiniPhysics::processCollisions()
                             }
                             pl.m_stand = true;
                             pl.m_standOnYMovable = (objs[i].m_velY != 0.0);
-                            pl.m_velX = pl.m_velX_source + objs[i].m_velX;
-                            speedSum += objs[i].m_velX;
-                            if(objs[i].m_velX != 0.0)
-                                speedNum += 1.0;
+                            if(doSpeedStack)
+                            {
+                                pl.m_velX = pl.m_velX_source + objs[i].m_velX;
+                                speedSum += objs[i].m_velX;
+                                if(objs[i].m_velX != 0.0)
+                                    speedNum += 1.0;
+                            }
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
                             l_clifCheck.push_back(&objs[i]);
                             l_contactB.push_back(&objs[i]);
                             if(pl.m_onSlopeCeiling)
                             {
-                                if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
+                                if( findMinimalHeight(objs[i].m_id, objs[i].rect(), objs[i].m_velX,
                                                   pl.m_onSlopeCeilingShape, pl.m_onSlopeCeilingRect,
-                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y,
+                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y, &pl.m_velX_source,
                                                   pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
                                 {
-                                    pl.m_velX_source = 0.0;
+                                    doSpeedStack = false;
                                     pl.m_velX = pl.m_velX_source;
                                     speedSum = 0.0;
                                     speedNum = 0.0;
@@ -1002,22 +1045,26 @@ void MiniPhysics::processCollisions()
                             }
                             pl.m_stand = true;
                             pl.m_standOnYMovable = (objs[i].m_velY != 0.0);
-                            pl.m_velX = pl.m_velX_source + objs[i].m_velX;
-                            speedSum += objs[i].m_velX;
-                            if(objs[i].m_velX != 0.0)
-                                speedNum += 1.0;
+                            if(doSpeedStack)
+                            {
+                                pl.m_velX = pl.m_velX_source + objs[i].m_velX;
+                                speedSum += objs[i].m_velX;
+                                if(objs[i].m_velX != 0.0)
+                                    speedNum += 1.0;
+                            }
                             contactAt = obj::Contact_Top;
                             doCliffCheck = true;
                             l_clifCheck.push_back(&objs[i]);
                             l_contactB.push_back(&objs[i]);
                             if(pl.m_onSlopeCeiling)
                             {
-                                if( findMinimalHeight(objs[i].m_id, objs[i].rect(),
+                                if( findMinimalHeight(objs[i].m_id, objs[i].rect(), objs[i].m_velX,
                                                   pl.m_onSlopeCeilingShape, pl.m_onSlopeCeilingRect,
-                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y,
+                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y, &pl.m_velX_source,
                                                   pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
                                 {
-                                    pl.m_velX_source = 0.0;
+                                    //pl.m_velX_source = 0.0;
+                                    doSpeedStack = false;
                                     pl.m_velX = pl.m_velX_source;
                                     speedSum = 0.0;
                                     speedNum = 0.0;
@@ -1076,15 +1123,16 @@ void MiniPhysics::processCollisions()
                             pl.m_onSlopeCeilingRect  = objs[i].rect();
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
-                            l_contactB.push_back(&objs[i]);
+                            l_contactT.push_back(&objs[i]);
                             if(pl.m_onSlopeFloor)
                             {
-                                if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect,
+                                if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect, 0.0,
                                                       objs[i].m_id, objs[i].rect(),
-                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y,
+                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y, &pl.m_velX_source,
                                                       pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
                                 {
-                                    pl.m_velX_source = 0.0;
+                                    //pl.m_velX_source = 0.0;
+                                    doSpeedStack = false;
                                     pl.m_velX = pl.m_velX_source;
                                     speedSum = 0.0;
                                     speedNum = 0.0;
@@ -1142,15 +1190,16 @@ void MiniPhysics::processCollisions()
                             pl.m_onSlopeCeilingRect  = objs[i].rect();
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
-                            l_contactB.push_back(&objs[i]);
+                            l_contactT.push_back(&objs[i]);
                             if(pl.m_onSlopeFloor)
                             {
-                                if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect,
+                                if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect, 0.0f,
                                                       objs[i].m_id, objs[i].rect(),
-                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y,
+                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y, &pl.m_velX_source,
                                                       pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
                                 {
-                                    pl.m_velX_source = 0.0;
+                                    //pl.m_velX_source = 0.0;
+                                    doSpeedStack = false;
                                     pl.m_velX = pl.m_velX_source;
                                     speedSum = 0.0;
                                     speedNum = 0.0;
@@ -1263,7 +1312,10 @@ void MiniPhysics::processCollisions()
                 }
                 else
                 if( (pl.top() >= objs[i].bottom()) &&
-                    isBlockCeiling(objs[i].m_id) &&
+                    ( isBlockCeiling(objs[i].m_id) /*||
+                      ( (objs[i].m_id == obj::SL_RightTop) && pl.betweenH(objs[i].left()) )||
+                      ( (objs[i].m_id == obj::SL_LeftTop) && pl.betweenH(objs[i].right()) )*/
+                     ) &&
                     ((objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) != 0) &&
                     (oldSpeedY < objs[i].m_velY) )
                 {
@@ -1286,18 +1338,24 @@ void MiniPhysics::processCollisions()
             l_possibleCrushers.push_back(&objs[i]);
             pl.m_crushed = true;
         }
-
-        if(pl.m_crushed && pl.m_crushedOld )
-        {
-            /*HELP ME TO AVOID THIS CRAP!!!!*/
-        }
-
     }
     if(tm >= 0)
     {
         i = tm;
         td = 1;
         goto tipRectShape;
+    }
+
+    if(pl.m_crushed && pl.m_crushedOld )
+    {
+        /*HELP ME TO AVOID THIS CRAP!!!!*/
+        if(pl.m_stand)
+        {
+            doSpeedStack = false;
+            pl.m_velX_source = 0.0;
+            pl.m_velX = 0.0;
+            pl.m_x += 8.0;
+        }
     }
 
     /* ***********************Hit a block********************************** */
@@ -1387,8 +1445,9 @@ void MiniPhysics::processCollisions()
             pl.m_stand = false;
             pl.m_y = collideAtTop->bottom();
             pl.m_velY = collideAtTop->m_velY;
-            speedNum = 0;
-            speedSum = 0;
+            doSpeedStack = false;
+            speedNum = 0.0;
+            speedSum = 0.0;
             #ifdef STOP_LOOP_ON_CRUSH
             alive = false;
             #endif
@@ -1419,7 +1478,7 @@ void MiniPhysics::processCollisions()
     }
     /* ****************************************************************************** */
 
-    if( (speedNum > 1.0) && (speedSum != 0.0) )
+    if( doSpeedStack && (speedNum > 1.0) && (speedSum != 0.0) )
     {
         pl.m_velX = pl.m_velX_source + (speedSum/speedNum);
     }
