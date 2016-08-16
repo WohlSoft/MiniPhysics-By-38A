@@ -1513,8 +1513,19 @@ void MiniPhysics::processCollisions()
             #ifdef STOP_LOOP_ON_CRUSH
             alive = false;
             #endif
+            if( (collideAtBottom->m_id == obj::SL_RightBottom) &&
+                ( round(pl.right()) == round(collideAtBottom->right()) ) )
+            {
+                pl.m_x = collideAtBottom->right() - pl.m_w - 1.0;
+            } else
+            if( (collideAtBottom->m_id == obj::SL_LeftBottom) &&
+                ( round(pl.left()) == round(collideAtBottom->left()) ) )
+            {
+                pl.m_x = collideAtBottom->left() + 1.0;
+            } else
             if( (collideAtTop->m_blocked[pl.m_filterID]==obj::Block_ALL) &&
-                (collideAtBottom->m_blocked[pl.m_filterID]==obj::Block_ALL) )
+                (collideAtBottom->m_blocked[pl.m_filterID]==obj::Block_ALL) &&
+                  (pl.m_h > fabs(collideAtTop->bottom() - collideAtBottom->top())) )
             {
                 pl.m_crushedHardDelay = 30;
                 pl.m_crushedHard = true;
@@ -1533,7 +1544,8 @@ void MiniPhysics::processCollisions()
             alive = false;
             #endif
             if( (collideAtLeft->m_blocked[pl.m_filterID]==obj::Block_ALL) &&
-                (collideAtRight->m_blocked[pl.m_filterID]==obj::Block_ALL) )
+                (collideAtRight->m_blocked[pl.m_filterID]==obj::Block_ALL) &&
+                 (pl.m_w > fabs(collideAtLeft->right() - collideAtRight->left())) )
             {
                 pl.m_crushedHardDelay = 30;
                 pl.m_crushedHard = true;
