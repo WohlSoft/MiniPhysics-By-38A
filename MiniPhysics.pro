@@ -24,10 +24,22 @@ include("$$PWD/PGE_File_Formats/File_FormatsQT.pri");
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-        miniphysics.cpp
+        miniphysics.cpp \
+    common_features/point.cpp \
+    common_features/pointf.cpp \
+    common_features/rect.cpp \
+    common_features/rectf.cpp \
+    common_features/size.cpp \
+    common_features/sizef.cpp
 
 HEADERS  += mainwindow.h \
-    miniphysics.h
+    miniphysics.h \
+    common_features/point.h \
+    common_features/pointf.h \
+    common_features/rect.h \
+    common_features/rectf.h \
+    common_features/size.h \
+    common_features/sizef.h
 
 FORMS    += mainwindow.ui
 
