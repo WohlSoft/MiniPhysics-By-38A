@@ -93,6 +93,7 @@ public:
         m_crushed(false),
         m_crushedOld(false),
         m_crushedHard(false),
+        m_crushedHardDelay(0),
         m_drawSpeed(false),
         m_bumped(false),
         m_cliff(false),
@@ -133,6 +134,7 @@ public:
         m_crushed(o.m_crushed),
         m_crushedOld(o.m_crushedOld),
         m_crushedHard(o.m_crushedHard),
+        m_crushedHardDelay(o.m_crushedHardDelay),
         m_drawSpeed(o.m_drawSpeed),
         m_bumped(o.m_bumped),
         m_cliff(o.m_cliff),
@@ -279,6 +281,7 @@ public:
     bool    m_crushed;
     bool    m_crushedOld;
     bool    m_crushedHard;
+    int     m_crushedHardDelay;
     bool    m_drawSpeed;
     bool    m_bumped;
     bool    m_cliff;

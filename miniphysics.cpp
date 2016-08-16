@@ -270,7 +270,10 @@ void MiniPhysics::iterateStep()
         pl.m_touchRightWall = false;
         pl.m_crushedOld = pl.m_crushed;
         pl.m_crushed    = false;
-        pl.m_crushedHard = false;
+        if(pl.m_crushedHardDelay > 0)
+            pl.m_crushedHardDelay -= 1;
+        else
+            pl.m_crushedHard = false;
         pl.m_cliff      = false;
 
         pl.m_oldx = pl.m_x;
@@ -1317,6 +1320,8 @@ void MiniPhysics::processCollisions()
                 {
                     //objs[i].m_touch = obj::Contact_Left;
                     pl.m_touchRightWall = true;
+                    if(!collideAtRight)
+                        collideAtRight = &objs[i];
                 }
                 else
                 if( (pl.left() >= objs[i].right()) &&
@@ -1326,6 +1331,8 @@ void MiniPhysics::processCollisions()
                 {
                     //objs[i].m_touch = obj::Contact_Right;
                     pl.m_touchLeftWall = true;
+                    if(!collideAtLeft)
+                        collideAtLeft = &objs[i];
                 }
             }
 
@@ -1509,6 +1516,7 @@ void MiniPhysics::processCollisions()
             if( (collideAtTop->m_blocked[pl.m_filterID]==obj::Block_ALL) &&
                 (collideAtBottom->m_blocked[pl.m_filterID]==obj::Block_ALL) )
             {
+                pl.m_crushedHardDelay = 30;
                 pl.m_crushedHard = true;
                 printf("CRUSHED BETWEEN VERTICAL!!!\n");
                 fflush(stdout);
@@ -1527,6 +1535,7 @@ void MiniPhysics::processCollisions()
             if( (collideAtLeft->m_blocked[pl.m_filterID]==obj::Block_ALL) &&
                 (collideAtRight->m_blocked[pl.m_filterID]==obj::Block_ALL) )
             {
+                pl.m_crushedHardDelay = 30;
                 pl.m_crushedHard = true;
                 printf("CRUSHED BETWEEN HORIZONTAL!!!\n");
                 fflush(stdout);
