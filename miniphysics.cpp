@@ -102,18 +102,27 @@ void MiniPhysics::initTestCommon(LevelData *fileP)
             case 359: case 360: case 319: id = obj::SL_LeftBottom;    break;
             case 363: case 364: id = obj::SL_LeftTop;       break;
             case 362: case 361: id = obj::SL_RightTop;      break;
+            case 365:
+                id = obj::SL_RightBottom;
+                blockSide = obj::Block_TOP; break;
             case 366:
-            id = obj::SL_LeftBottom;
-            blockSide = obj::Block_TOP; break;
+                id = obj::SL_LeftBottom;
+                blockSide = obj::Block_TOP; break;
+            case 367:
+                id = obj::SL_LeftTop;
+                blockSide = obj::Block_BOTTOM; break;
+            case 368:
+                id = obj::SL_RightTop;
+                blockSide = obj::Block_BOTTOM; break;
             case 495:
-            blockSide = obj::Block_RIGHT;
-            id = obj::SL_Rect; break;
+                blockSide = obj::Block_RIGHT;
+                id = obj::SL_Rect; break;
             case 25: case 575:
-            blockSide = obj::Block_TOP;
-            id = obj::SL_Rect; break;
+                blockSide = obj::Block_TOP;
+                id = obj::SL_Rect; break;
             case 500:
-            blockSide = obj::Block_BOTTOM;
-            id = obj::SL_Rect; break;
+                blockSide = obj::Block_BOTTOM;
+                id = obj::SL_Rect; break;
             default:    id = obj::SL_Rect;                  break;
         }
         obj box(blk.x, blk.y, id);
@@ -966,7 +975,7 @@ void MiniPhysics::processCollisions()
                         /* ********************* Resolve collision with top slope surface *************************** */
                         else if( pl.bottom() > objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k) - 1 )
                         {
-                            if(objs[i].m_blocked[pl.m_filterID]!=obj::Block_ALL)
+                            if( (objs[i].m_blocked[pl.m_filterID] != obj::Block_ALL) && (!pl.m_onSlopeFloorOld) )
                             {
                                 if( (objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) == 0 )
                                     goto skipTriangleResolving;
@@ -1071,10 +1080,10 @@ void MiniPhysics::processCollisions()
                         /* ********************* Resolve collision with top slope surface *************************** */
                         else if(pl.bottom() > objs[i].m_y + ((objs[i].right() - pl.m_x - pl.m_w) * k) - 1 )
                         {
-                            if((objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) == 0)
+                            if((objs[i].m_blocked[pl.m_filterID] & obj::Block_TOP) == 0)
                                 goto skipTriangleResolving;
 
-                            if(objs[i].m_blocked[pl.m_filterID]!=obj::Block_ALL)
+                            if( (objs[i].m_blocked[pl.m_filterID] != obj::Block_ALL) && (!pl.m_onSlopeFloorOld) )
                             {
                                 if( (objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) == 0 )
                                     goto skipTriangleResolving;
@@ -1410,9 +1419,9 @@ void MiniPhysics::processCollisions()
 
     if(pl.m_crushed && pl.m_crushedOld )
     {
-        /*HELP ME TO AVOID THIS CRAP!!!!*/
         if(pl.m_stand)
         {
+            /*HELP ME TO AVOID THIS CRAP!!!!*/
             doSpeedStack = false;
             pl.m_velX_source = 0.0;
             pl.m_velX = 0.0;
@@ -1513,6 +1522,16 @@ void MiniPhysics::processCollisions()
             #ifdef STOP_LOOP_ON_CRUSH
             alive = false;
             #endif
+            if( (collideAtTop->m_id == obj::SL_RightTop) &&
+                ( round(pl.right()) == round(collideAtTop->right()) ) )
+            {
+                pl.m_x = collideAtTop->right() - pl.m_w - 1.0;
+            } else
+            if( (collideAtTop->m_id == obj::SL_LeftTop) &&
+                ( round(pl.left()) == round(collideAtTop->left()) ) )
+            {
+                pl.m_x = collideAtTop->left() + 1.0;
+            } else
             if( (collideAtBottom->m_id == obj::SL_RightBottom) &&
                 ( round(pl.right()) == round(collideAtBottom->right()) ) )
             {
