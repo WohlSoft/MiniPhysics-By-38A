@@ -89,8 +89,8 @@ void MiniPhysics::initTestCommon(LevelData *fileP)
     pl.m_y = file.players[0].y;
     pl.m_oldx = pl.m_x;
     pl.m_oldy = pl.m_y;
-    pl.m_posRect.setPos(file.players[0].x, file.players[0].y);
-    pl.m_posRectOld = pl.m_posRect;
+    //pl.m_posRect.setPos(file.players[0].x, file.players[0].y);
+    //pl.m_posRectOld = pl.m_posRect;
     pl.m_drawSpeed = true;
 
     for(int i=0; i<file.blocks.size(); i++)
@@ -136,19 +136,18 @@ void MiniPhysics::initTestCommon(LevelData *fileP)
         box.m_blocked[1] = blockSide;
         objs.push_back(box);
         if(blk.id == 159)
-            movingBlock.push_back(&objs.last());
+            movingBlock.push_back(objs.size()-1);
     }
 
 
     {
-        int lastID = movingBlock.size()-1;
-        obj &brick1 = *movingBlock[lastID];
+        obj &brick1 = objs[movingBlock[3]];
         brick1.m_velocityX = 0.8;
-        obj &brick2 = *movingBlock[lastID-1];
+        obj &brick2 = objs[movingBlock[2]];
         brick2.m_velocityY = 1.0;
-        obj &brick3 = *movingBlock[lastID-2];
+        obj &brick3 = objs[movingBlock[1]];
         brick3.m_velocityX = 0.8;
-        obj &brick4 = *movingBlock[lastID-3];
+        obj &brick4 = objs[movingBlock[0]];
         brick4.m_velocityX = 1.6;
     }
     looper.start(25);
@@ -192,8 +191,8 @@ void MiniPhysics::iterateStep()
     }
 
     {
-        int lastID  =  movingBlock.size()-1;
-        obj &brick1 = *movingBlock[lastID];
+        //unsigned int lastID  =  movingBlock.size()-1;
+        obj &brick1 = objs[movingBlock[3]];
 
         brick1.m_oldx = brick1.m_x;
         brick1.m_oldy = brick1.m_y;
@@ -204,21 +203,21 @@ void MiniPhysics::iterateStep()
         brick1.m_velocityY = cos(brick1Passed)*2.0;
         brick1Passed += 0.07;
 
-        obj &brick2 = *movingBlock[lastID-1];
+        obj &brick2 = objs[movingBlock[2]];
         brick2.m_oldy = brick2.m_y;
         brick2.m_y   += brick2.m_velocityY;
         brick2Passed += brick2.m_velocityY;
         if(brick2Passed > 8.0*32.0 || brick2Passed < 0.0)
             brick2.m_velocityY *= -1.0;
 
-        obj &brick3 = *movingBlock[lastID-2];
+        obj &brick3 = objs[movingBlock[1]];
         brick3.m_oldx = brick3.m_x;
         brick3.m_x   += brick3.m_velocityX;
         brick3Passed += brick3.m_velocityX;
         if(brick3Passed > 9.0*32.0 || brick3Passed < 0.0)
             brick3.m_velocityX *= -1.0;
 
-        obj &brick4 = *movingBlock[lastID-3];
+        obj &brick4 = objs[movingBlock[0]];
         brick4.m_oldx = brick4.m_x;
         brick4.m_x   += brick4.m_velocityX;
         brick4Passed += brick4.m_velocityX;
@@ -637,18 +636,15 @@ inline bool findMinimalHeight(int idF, objRect sF, double vF,
     return false;
 }
 
-void MiniPhysics::processCollisions()
+void obj::processCollisions(std::vector<obj> &objs)
 {
     double k = 0;
-    int i=0, /*ck=0,*/ tm=0, td=0;
+    unsigned int i=0;
+    int tm=0, td=0;
     obj::ContactAt contactAt = obj::Contact_None;
     bool colH=false, colV=false;
     tm = -1;
     td = 0;
-
-    //Return player to top back on fall down
-    if(pl.m_y > this->height()-cameraY)
-        pl.m_y = 64;
 
     bool doHit = false;
     bool doCliffCheck = false;
@@ -673,10 +669,10 @@ void MiniPhysics::processCollisions()
     double speedSum = 0.0;
 
     bool blockSkip = false;
-    int  blockSkipStartFrom = 0;
-    int  blockSkipI = 0;
-    double oldSpeedX = pl.m_velocityX;
-    double oldSpeedY = pl.m_velocityY;
+    unsigned int  blockSkipStartFrom = 0;
+    unsigned int  blockSkipI = 0;
+    double oldSpeedX = m_velocityX;
+    double oldSpeedY = m_velocityY;
 
     for(i=0; i<objs.size(); i++)
     {
@@ -689,9 +685,9 @@ void MiniPhysics::processCollisions()
         objs[i].m_bumped = false;
         contactAt = obj::Contact_None;
         /* ********************Collect blocks to hit************************ */
-        if( figureTouch(pl, objs[i], -1.0, 0.0) )
+        if( figureTouch(*this, objs[i], -1.0, 0.0) )
         {
-            if(pl.centerY() < objs[i].centerY())
+            if(centerY() < objs[i].centerY())
             {
                 l_clifCheck.push_back(&objs[i]);
             } else {
@@ -700,26 +696,26 @@ void MiniPhysics::processCollisions()
         }
 
         /* ****Collect extra candidates for a cliff detection on the slope******** */
-        if(pl.m_onSlopeFloor)
+        if(m_onSlopeFloor)
         {
-            objRect &r1 = pl.m_onSlopeFloorRect;
+            objRect &r1 = m_onSlopeFloorRect;
             objRect  r2 = objs[i].rect();
-            if( (pl.m_onSlopeFloorShape == obj::SL_LeftBottom) && (pl.m_velocityX >= 0.0) )
+            if( (m_onSlopeFloorShape == obj::SL_LeftBottom) && (m_velocityX >= 0.0) )
             {
-                if( recttouch(pl.m_x + pl.m_w, pl.centerY(), pl.m_w, r2.h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h)
+                if( recttouch(m_x + m_w, centerY(), m_w, r2.h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h)
                     &&
                       //is touching corners
                       ( ( (r1.x+r1.w) >= (r2.x-1.0) ) &&
                         ( (r1.x+r1.w) <= (r2.x+r2.w) ) &&
                         ( (r1.y+r1.h) >= (r2.y-1.0) ) &&
                         ( (r1.y+r1.h) <= (r2.y+1.0) ) ) &&
-                        ( objs[i].top() > pl.bottom() ) )
+                        ( objs[i].top() > bottom() ) )
                     l_clifCheck.push_back(&objs[i]);
             }
             else
-            if( (pl.m_onSlopeFloorShape == obj::SL_RightBottom) && (pl.m_velocityX <= 0.0) )
+            if( (m_onSlopeFloorShape == obj::SL_RightBottom) && (m_velocityX <= 0.0) )
             {
-                if( recttouch(pl.m_x, pl.centerY(), pl.m_w, r2.h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h)
+                if( recttouch(m_x, centerY(), m_w, r2.h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h)
                         &&
                           //is touching corners
                           ( ( (r1.x) >= (r2.x) ) &&
@@ -731,37 +727,37 @@ void MiniPhysics::processCollisions()
         }
         /* ************************************************************************* */
 
-        if( (pl.m_x + pl.m_w > objs[i].m_x) && (objs[i].m_x + objs[i].m_w > pl.m_x) )
+        if( (m_x + m_w > objs[i].m_x) && (objs[i].m_x + objs[i].m_w > m_x) )
         {
-            if(pl.m_y + pl.m_h == objs[i].m_y)
+            if(m_y + m_h == objs[i].m_y)
                 goto tipRectV;
         }
 
     tipRectShape://Recheck rectangular collision
-        if( pt(pl.m_x, pl.m_y, pl.m_w, pl.m_h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h))
+        if( pt(m_x, m_y, m_w, m_h, objs[i].m_x, objs[i].m_y, objs[i].m_w, objs[i].m_h))
         {
-            colH = pt(pl.m_x,     pl.m_oldy,  pl.m_w, pl.m_oldh,     objs[i].m_x,    objs[i].m_oldy, objs[i].m_w, objs[i].m_oldh);
-            colV = pt(pl.m_oldx,  pl.m_y,     pl.m_oldw, pl.m_h,     objs[i].m_oldx, objs[i].m_y,    objs[i].m_oldw, objs[i].m_h);
+            colH = pt(m_x,     m_oldy,  m_w, m_oldh,     objs[i].m_x,    objs[i].m_oldy, objs[i].m_w, objs[i].m_oldh);
+            colV = pt(m_oldx,  m_y,     m_oldw, m_h,     objs[i].m_oldx, objs[i].m_y,    objs[i].m_oldw, objs[i].m_h);
             if( colH ^ colV )
             {
                 if(!colH)
                 {
                 tipRectV://Check vertical sides colllisions
-                    if( pl.centerY() < objs[i].centerY() )
+                    if( centerY() < objs[i].centerY() )
                     {
                         //'top
                         if( isBlockFloor(&objs[i]))
                         {
                     tipRectT://Impacted at top of block (bottom of player)
-                            if((objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) == 0)
+                            if((objs[i].m_blocked[m_filterID]&obj::Block_TOP) == 0)
                                 goto tipRectT_Skip;
-                            pl.m_y = objs[i].m_y - pl.m_h;
-                            pl.m_velocityY   = objs[i].m_velocityY;
-                            pl.m_stand  = true;
-                            pl.m_standOnYMovable = (objs[i].m_velocityY != 0.0);
+                            m_y = objs[i].m_y - m_h;
+                            m_velocityY   = objs[i].m_velocityY;
+                            m_stand  = true;
+                            m_standOnYMovable = (objs[i].m_velocityY != 0.0);
                             if(doSpeedStack)
                             {
-                                pl.m_velocityX   = pl.m_velocityXsrc + objs[i].m_velocityX;
+                                m_velocityX   = m_velocityXsrc + objs[i].m_velocityX;
                                 speedSum += objs[i].m_velocityX;
                                 if(objs[i].m_velocityX != 0.0)
                                     speedNum += 1.0;
@@ -772,14 +768,14 @@ void MiniPhysics::processCollisions()
                             l_contactB.push_back(&objs[i]);
                             collideAtBottom = &objs[i];
                             //objs[i].m_touch = contactAt;
-                            if(pl.m_onSlopeCeiling)
+                            if(m_onSlopeCeiling)
                             {
                                 if( findMinimalHeight(objs[i].m_id, objs[i].rect(), objs[i].m_velocityX,
-                                                  pl.m_onSlopeCeilingShape, pl.m_onSlopeCeilingRect,
-                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y, &pl.m_velocityXsrc,
-                                                  pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
+                                                  m_onSlopeCeilingShape, m_onSlopeCeilingRect,
+                                                  m_w, m_h, &m_x, &m_y, &m_velocityXsrc,
+                                                  m_onSlopeCeiling, m_onSlopeFloor) )
                                 {
-                                    pl.m_velocityX = pl.m_velocityXsrc;
+                                    m_velocityX = m_velocityXsrc;
                                     doSpeedStack = false;
                                     speedSum = 0.0;
                                     speedNum = 0.0;
@@ -792,7 +788,7 @@ void MiniPhysics::processCollisions()
                         if( isBlockCeiling(&objs[i]) )
                         {
                     tipRectB://Impacted at bottom of block (top of player)
-                            if((objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) == 0)
+                            if((objs[i].m_blocked[m_filterID]&obj::Block_BOTTOM) == 0)
                                 goto tipRectB_Skip;
 
                             /* ************************************************************
@@ -802,33 +798,33 @@ void MiniPhysics::processCollisions()
                              * while falling down.
                              * Ignore this code part when gravitation is directed to up
                              **************************************************************/
-                            if(round(objs[i].right())-1.0 < round(pl.left()))
+                            if(round(objs[i].right())-1.0 < round(left()))
                             {
-                                pl.m_x = round(pl.m_x);
+                                m_x = round(m_x);
                                 goto tipRectB_Skip;
                             }
-                            if(round(objs[i].left())+1.0 > round(pl.right()))
+                            if(round(objs[i].left())+1.0 > round(right()))
                             {
-                                pl.m_x = round(pl.m_x);
+                                m_x = round(m_x);
                                 goto tipRectB_Skip;
                             }
                             /* *************************************************************/
 
-                            pl.m_y = objs[i].m_y + objs[i].m_h;
-                            pl.m_velocityY = objs[i].m_velocityY;
+                            m_y = objs[i].m_y + objs[i].m_h;
+                            m_velocityY = objs[i].m_velocityY;
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
                             collideAtTop = &objs[i];
                             l_contactT.push_back(&objs[i]);
-                            if(pl.m_onSlopeFloor)
+                            if(m_onSlopeFloor)
                             {
-                                if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect, 0.0,
+                                if( findMinimalHeight(m_onSlopeFloorShape, m_onSlopeFloorRect, 0.0,
                                                       objs[i].m_id, objs[i].rect(),
-                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y, &pl.m_velocityXsrc,
-                                                      pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
+                                                      m_w, m_h, &m_x, &m_y, &m_velocityXsrc,
+                                                      m_onSlopeCeiling, m_onSlopeFloor) )
                                 {
                                     doSpeedStack = false;
-                                    pl.m_velocityX = pl.m_velocityXsrc;
+                                    m_velocityX = m_velocityXsrc;
                                     speedSum = 0.0;
                                     speedNum = 0.0;
                                 }
@@ -838,42 +834,42 @@ void MiniPhysics::processCollisions()
                     }
                 } else {
                 tipRectH://Check horisontal sides collision
-                    if( pl.centerX() < objs[i].centerX() )
+                    if( centerX() < objs[i].centerX() )
                     {
                         //'left
                         if( isBlockLeftWall(&objs[i]) )
                         {
-                            if(pl.m_onSlopeCeilingOld || pl.m_onSlopeFloorOld)
+                            if(m_onSlopeCeilingOld || m_onSlopeFloorOld)
                             {
-                                objRect& rF = pl.m_onSlopeFloorRect;
-                                objRect& rC = pl.m_onSlopeCeilingRect;
+                                objRect& rF = m_onSlopeFloorRect;
+                                objRect& rC = m_onSlopeCeilingRect;
                                 if( (objs[i].top() == rF.top())  &&
                                     (objs[i].right() <= (rF.left()+1.0)) &&
-                                    (pl.m_onSlopeFloorShape == obj::SL_LeftBottom))
+                                    (m_onSlopeFloorShape == obj::SL_LeftBottom))
                                     goto tipRectL_Skip;
                                 if( (objs[i].bottom() == rC.bottom()) &&
                                     (objs[i].right() <= (rF.left()+1.0)) &&
-                                    (pl.m_onSlopeCeilingShape == obj::SL_LeftTop)  )
+                                    (m_onSlopeCeilingShape == obj::SL_LeftTop)  )
                                     goto tipRectL_Skip;
                             }
                     tipRectL://Impacted at left (right of player)
                             {
-                                if((objs[i].m_blocked[pl.m_filterID]&obj::Block_LEFT) == 0)
+                                if((objs[i].m_blocked[m_filterID]&obj::Block_LEFT) == 0)
                                     goto tipRectL_Skip;
 
-                                if(pl.m_allowHoleRuning)
+                                if(m_allowHoleRuning)
                                 {
-                                    if( (pl.bottom() < (objs[i].top() + 2.0)) &&
-                                            (pl.m_velocityY > 0.0) && (pl.m_velocityX > 0.0 ) &&
-                                            (fabs(pl.m_velocityX) > fabs(pl.m_velocityY)) )
+                                    if( (bottom() < (objs[i].top() + 2.0)) &&
+                                            (m_velocityY > 0.0) && (m_velocityX > 0.0 ) &&
+                                            (fabs(m_velocityX) > fabs(m_velocityY)) )
                                         goto tipRectT;
                                 }
-                                pl.m_x = objs[i].m_x - pl.m_w;
-                                double &splr = pl.m_velocityX;
+                                m_x = objs[i].m_x - m_w;
+                                double &splr = m_velocityX;
                                 double &sbox = objs[i].m_velocityX;
                                 xSpeedWasReversed = splr <= sbox;
                                 splr = std::min( splr, sbox );
-                                pl.m_velocityXsrc = splr;
+                                m_velocityXsrc = splr;
                                 doSpeedStack = false;
                                 speedSum = 0.0;
                                 speedNum = 0.0;
@@ -887,37 +883,37 @@ void MiniPhysics::processCollisions()
                         //'right
                         if( isBlockRightWall(&objs[i]) )
                         {
-                            if(pl.m_onSlopeCeilingOld || pl.m_onSlopeFloorOld)
+                            if(m_onSlopeCeilingOld || m_onSlopeFloorOld)
                             {
-                                objRect& rF = pl.m_onSlopeFloorRect;
-                                objRect& rC = pl.m_onSlopeCeilingRect;
+                                objRect& rF = m_onSlopeFloorRect;
+                                objRect& rC = m_onSlopeCeilingRect;
                                 if( (objs[i].top() == rF.top()) &&
                                     (objs[i].left() >= (rF.right()-1.0)) &&
-                                    (pl.m_onSlopeFloorShape == obj::SL_RightBottom) )
+                                    (m_onSlopeFloorShape == obj::SL_RightBottom) )
                                     goto tipRectR_Skip;
                                 if( (objs[i].bottom() == rC.bottom()) &&
                                     (objs[i].left() >= (rF.right()-1.0)) &&
-                                    (pl.m_onSlopeCeilingShape == obj::SL_RightTop) )
+                                    (m_onSlopeCeilingShape == obj::SL_RightTop) )
                                     goto tipRectR_Skip;
                             }
                     tipRectR://Impacted at right (left of player)
                             {
-                                if((objs[i].m_blocked[pl.m_filterID]&obj::Block_RIGHT) == 0)
+                                if((objs[i].m_blocked[m_filterID]&obj::Block_RIGHT) == 0)
                                     goto tipRectR_Skip;
 
-                                if(pl.m_allowHoleRuning)
+                                if(m_allowHoleRuning)
                                 {
-                                    if( (pl.bottom() < (objs[i].top() + 2.0)) &&
-                                            (pl.m_velocityY > 0.0) && (pl.m_velocityX < 0.0 ) &&
-                                            (fabs(pl.m_velocityX) > fabs(pl.m_velocityY)) )
+                                    if( (bottom() < (objs[i].top() + 2.0)) &&
+                                            (m_velocityY > 0.0) && (m_velocityX < 0.0 ) &&
+                                            (fabs(m_velocityX) > fabs(m_velocityY)) )
                                         goto tipRectT;
                                 }
-                                pl.m_x = objs[i].m_x + objs[i].m_w;
-                                double &splr = pl.m_velocityX;
+                                m_x = objs[i].m_x + objs[i].m_w;
+                                double &splr = m_velocityX;
                                 double &sbox = objs[i].m_velocityX;
                                 xSpeedWasReversed = splr >= sbox;
                                 splr = std::max( splr, sbox );
-                                pl.m_velocityXsrc = splr;
+                                m_velocityXsrc = splr;
                                 doSpeedStack = false;
                                 speedSum = 0.0;
                                 speedNum = 0.0;
@@ -930,7 +926,7 @@ void MiniPhysics::processCollisions()
                     }
                 }
 
-                if( (pl.m_stand) || (pl.m_velocityXsrc == 0.0) || xSpeedWasReversed)
+                if( (m_stand) || (m_velocityXsrc == 0.0) || xSpeedWasReversed)
                     tm = -2;
 
         tipTriangleShape://Check triangular collision
@@ -944,86 +940,86 @@ void MiniPhysics::processCollisions()
                     {
                     case obj::SL_LeftBottom:
                         /* *************** Resolve collision with corner on the top ********************************* */
-                        if( (pl.left() <= objs[i].left()) && (pl.m_onSlopeFloorTopAlign || (pl.m_velocityY >= 0.0) ) )
+                        if( (left() <= objs[i].left()) && (m_onSlopeFloorTopAlign || (m_velocityY >= 0.0) ) )
                         {
-                            if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) != 0 ) &&
-                                  (pl.bottom() > objs[i].bottom()) )
+                            if( ( (objs[i].m_blocked[m_filterID]&obj::Block_BOTTOM) != 0 ) &&
+                                  (bottom() > objs[i].bottom()) )
                                 goto tipRectB;
-                            if( objs[i].m_blocked[pl.m_filterID] == obj::Block_ALL )
+                            if( objs[i].m_blocked[m_filterID] == obj::Block_ALL )
                             {
-                                if(  (pl.bottom() >= objs[i].top()) &&
-                                    ((pl.left() < objs[i].left()) || (pl.m_velocityX <= 0.0)) )
+                                if(  (bottom() >= objs[i].top()) &&
+                                    ((left() < objs[i].left()) || (m_velocityX <= 0.0)) )
                                     goto tipRectT;
                             } else {
-                                if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) != 0 ) &&
-                                    ( pl.bottom() >= objs[i].top() ) && ( pl.bottomOld() <= objs[i].topOld() ) &&
-                                    ( (pl.left() < objs[i].left()) || (pl.m_velocityX <= 0.0)) )
+                                if( ( (objs[i].m_blocked[m_filterID]&obj::Block_TOP) != 0 ) &&
+                                    ( bottom() >= objs[i].top() ) && ( bottomOld() <= objs[i].topOld() ) &&
+                                    ( (left() < objs[i].left()) || (m_velocityX <= 0.0)) )
                                     goto tipRectT;
                             }
                         }
                         /* *************** Resolve collision with footer corner on right bottom side **************** */
-                        else if( ( pl.bottom() > objs[i].bottom() ) &&
-                                ((!pl.m_onSlopeFloorOld && (pl.bottomOld() > objs[i].bottomOld())) ||
-                                  ((pl.m_onSlopeFloorShape != objs[i].m_id)&&(pl.m_onSlopeFloorShape >=0))
+                        else if( ( bottom() > objs[i].bottom() ) &&
+                                ((!m_onSlopeFloorOld && (bottomOld() > objs[i].bottomOld())) ||
+                                  ((m_onSlopeFloorShape != objs[i].m_id)&&(m_onSlopeFloorShape >=0))
                                  ))
                         {
                             if(!colH)
                             {
-                                if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) != 0 ) &&
-                                       objs[i].betweenH(pl.left(), pl.right()) && (pl.m_velocityY >= 0.0) )
+                                if( ( (objs[i].m_blocked[m_filterID]&obj::Block_BOTTOM) != 0 ) &&
+                                       objs[i].betweenH(left(), right()) && (m_velocityY >= 0.0) )
                                     goto tipRectB;
                             } else {
-                                if( pl.centerX() < objs[i].centerX() )
+                                if( centerX() < objs[i].centerX() )
                                 {
-                                    if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_LEFT) != 0 ) &&
-                                          (pl.m_velocityX >= 0.0) )
+                                    if( ( (objs[i].m_blocked[m_filterID]&obj::Block_LEFT) != 0 ) &&
+                                          (m_velocityX >= 0.0) )
                                         goto tipRectL;
                                 }
                                 else
                                 {
-                                    if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_RIGHT) != 0 ) &&
-                                          (pl.m_velocityX <= 0.0) )
+                                    if( ( (objs[i].m_blocked[m_filterID]&obj::Block_RIGHT) != 0 ) &&
+                                          (m_velocityX <= 0.0) )
                                         goto tipRectR;
                                 }
                             }
                         }
                         /* ********************* Resolve collision with top slope surface *************************** */
-                        else if( pl.bottom() > objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k) - 1 )
+                        else if( bottom() > objs[i].m_y + ( (m_x - objs[i].m_x) * k) - 1 )
                         {
-                            if( (objs[i].m_blocked[pl.m_filterID] != obj::Block_ALL) && (!pl.m_onSlopeFloorOld) )
+                            if( (objs[i].m_blocked[m_filterID] != obj::Block_ALL) && (!m_onSlopeFloorOld) )
                             {
-                                if( (objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) == 0 )
+                                if( (objs[i].m_blocked[m_filterID]&obj::Block_TOP) == 0 )
                                     goto skipTriangleResolving;
-                                if( (objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) == 0 )
+                                if( (objs[i].m_blocked[m_filterID]&obj::Block_BOTTOM) == 0 )
                                 {
-                                    if(pl.m_velocityY < objs[i].m_velocityY)
+                                    if(m_velocityY < objs[i].m_velocityY)
                                         goto skipTriangleResolving;
-                                    if( (pl.bottomOld() > objs[i].m_oldy + ( (pl.m_oldx - objs[i].m_oldx) * k) - 0) )
+                                    if( (bottomOld() > objs[i].m_oldy + ( (m_oldx - objs[i].m_oldx) * k) - 0) )
                                         goto skipTriangleResolving;
                                 }
                             }
 
-                            pl.m_y = objs[i].m_y + ( (pl.m_x - objs[i].m_x) * k ) - pl.m_h;
-                            pl.m_velocityY = objs[i].m_velocityY;
-                            pl.m_onSlopeFloor = true;
-                            pl.m_onSlopeFloorShape = objs[i].m_id;
-                            pl.m_onSlopeFloorRect  = objs[i].rect();
-                            if( (pl.m_velocityX > 0.0) || !pl.m_onSlopeFloorTopAlign)
+                            m_y = objs[i].m_y + ( (m_x - objs[i].m_x) * k ) - m_h;
+                            m_velocityY = objs[i].m_velocityY;
+                            m_onSlopeFloor = true;
+                            m_onSlopeFloorShape = objs[i].m_id;
+                            m_onSlopeFloorRect  = objs[i].rect();
+                            if( (m_velocityX > 0.0) || !m_onSlopeFloorTopAlign)
                             {
-                                pl.m_velocityY = objs[i].m_velocityY +pl.m_velocityX * k;
-                                pl.m_onSlopeYAdd = 0.0;
+                                m_velocityY = objs[i].m_velocityY +m_velocityX * k;
+                                m_onSlopeYAdd = 0.0;
                             }
                             else
                             {
-                                pl.m_onSlopeYAdd = pl.m_velocityX * k;
-                                if((pl.m_onSlopeYAdd < 0.0) && (pl.bottom() + pl.m_onSlopeYAdd < objs[i].m_y))
-                                    pl.m_onSlopeYAdd = -fabs(pl.bottom() - objs[i].m_y);
+                                m_onSlopeYAdd = m_velocityX * k;
+                                if((m_onSlopeYAdd < 0.0) && (bottom() + m_onSlopeYAdd < objs[i].m_y))
+                                    m_onSlopeYAdd = -fabs(bottom() - objs[i].m_y);
                             }
-                            pl.m_stand = true;
-                            pl.m_standOnYMovable = (objs[i].m_velocityY != 0.0);
+                            m_stand = true;
+                            m_standOnYMovable = (objs[i].m_velocityY != 0.0);
                             if(doSpeedStack)
                             {
-                                pl.m_velocityX = pl.m_velocityXsrc + objs[i].m_velocityX;
+                                m_velocityX = m_velocityXsrc + objs[i].m_velocityX;
                                 speedSum += objs[i].m_velocityX;
                                 if(objs[i].m_velocityX != 0.0)
                                     speedNum += 1.0;
@@ -1032,15 +1028,15 @@ void MiniPhysics::processCollisions()
                             doCliffCheck = true;
                             l_clifCheck.push_back(&objs[i]);
                             l_contactB.push_back(&objs[i]);
-                            if(pl.m_onSlopeCeiling)
+                            if(m_onSlopeCeiling)
                             {
                                 if( findMinimalHeight(objs[i].m_id, objs[i].rect(), objs[i].m_velocityX,
-                                                  pl.m_onSlopeCeilingShape, pl.m_onSlopeCeilingRect,
-                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y, &pl.m_velocityXsrc,
-                                                  pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
+                                                  m_onSlopeCeilingShape, m_onSlopeCeilingRect,
+                                                  m_w, m_h, &m_x, &m_y, &m_velocityXsrc,
+                                                  m_onSlopeCeiling, m_onSlopeFloor) )
                                 {
                                     doSpeedStack = false;
-                                    pl.m_velocityX = pl.m_velocityXsrc;
+                                    m_velocityX = m_velocityXsrc;
                                     speedSum = 0.0;
                                     speedNum = 0.0;
                                 }
@@ -1049,87 +1045,87 @@ void MiniPhysics::processCollisions()
                         break;
                     case obj::SL_RightBottom:
                         /* *************** Resolve collision with corner on the right top ************************* */
-                        if( pl.right() >= objs[i].right() && (pl.m_onSlopeFloorTopAlign || (pl.m_velocityY >= 0.0) ))
+                        if( right() >= objs[i].right() && (m_onSlopeFloorTopAlign || (m_velocityY >= 0.0) ))
                         {
-                            if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) != 0 ) &&
-                                  (pl.bottom() > objs[i].bottom()) )
+                            if( ( (objs[i].m_blocked[m_filterID]&obj::Block_BOTTOM) != 0 ) &&
+                                  (bottom() > objs[i].bottom()) )
                                 goto tipRectB;
-                            if( objs[i].m_blocked[pl.m_filterID] == obj::Block_ALL )
+                            if( objs[i].m_blocked[m_filterID] == obj::Block_ALL )
                             {
-                                if(  (pl.bottom() >= objs[i].top()) &&
-                                    ((pl.right() > objs[i].right()) || (pl.m_velocityX >= 0.0)) )
+                                if(  (bottom() >= objs[i].top()) &&
+                                    ((right() > objs[i].right()) || (m_velocityX >= 0.0)) )
                                     goto tipRectT;
                             } else {
-                                if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) != 0 ) &&
-                                    ( pl.bottom() >= objs[i].top() ) && ( pl.bottomOld() <= objs[i].topOld() ) &&
-                                    ((pl.right() > objs[i].right()) || (pl.m_velocityX >= 0.0)) )
+                                if( ( (objs[i].m_blocked[m_filterID]&obj::Block_TOP) != 0 ) &&
+                                    ( bottom() >= objs[i].top() ) && ( bottomOld() <= objs[i].topOld() ) &&
+                                    ((right() > objs[i].right()) || (m_velocityX >= 0.0)) )
                                     goto tipRectT;
                             }
                         }
                         /* ************** Resolve collision with footer corner on left bottom side **************** */
-                        else if( ( pl.bottom() > objs[i].bottom() ) &&
-                                ((!pl.m_onSlopeFloorOld && (pl.bottomOld() > objs[i].bottomOld())) ||
-                                  ((pl.m_onSlopeFloorShape != objs[i].m_id)&&(pl.m_onSlopeFloorShape >=0))
+                        else if( ( bottom() > objs[i].bottom() ) &&
+                                ((!m_onSlopeFloorOld && (bottomOld() > objs[i].bottomOld())) ||
+                                  ((m_onSlopeFloorShape != objs[i].m_id)&&(m_onSlopeFloorShape >=0))
                                  ))
                         {
                             if(!colH)
                             {
-                                if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) != 0 ) &&
-                                       objs[i].betweenH(pl.left(), pl.right()) && (pl.m_velocityY >= 0.0) )
+                                if( ( (objs[i].m_blocked[m_filterID]&obj::Block_BOTTOM) != 0 ) &&
+                                       objs[i].betweenH(left(), right()) && (m_velocityY >= 0.0) )
                                     goto tipRectB;
                             } else {
-                                if( pl.centerX() < objs[i].centerX() )
+                                if( centerX() < objs[i].centerX() )
                                 {
-                                    if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_LEFT) != 0 ) &&
-                                          (pl.m_velocityX >= 0.0) )
+                                    if( ( (objs[i].m_blocked[m_filterID]&obj::Block_LEFT) != 0 ) &&
+                                          (m_velocityX >= 0.0) )
                                         goto tipRectL;
                                 }
                                 else
                                 {
-                                    if(( (objs[i].m_blocked[pl.m_filterID]&obj::Block_RIGHT) != 0 ) &&
-                                         (pl.m_velocityX <= 0.0) )
+                                    if(( (objs[i].m_blocked[m_filterID]&obj::Block_RIGHT) != 0 ) &&
+                                         (m_velocityX <= 0.0) )
                                         goto tipRectR;
                                 }
                             }
                         }
                         /* ********************* Resolve collision with top slope surface *************************** */
-                        else if(pl.bottom() > objs[i].m_y + ((objs[i].right() - pl.m_x - pl.m_w) * k) - 1 )
+                        else if(bottom() > objs[i].m_y + ((objs[i].right() - m_x - m_w) * k) - 1 )
                         {
-                            if((objs[i].m_blocked[pl.m_filterID] & obj::Block_TOP) == 0)
+                            if((objs[i].m_blocked[m_filterID] & obj::Block_TOP) == 0)
                                 goto skipTriangleResolving;
 
-                            if( (objs[i].m_blocked[pl.m_filterID] != obj::Block_ALL) && (!pl.m_onSlopeFloorOld) )
+                            if( (objs[i].m_blocked[m_filterID] != obj::Block_ALL) && (!m_onSlopeFloorOld) )
                             {
-                                if( (objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) == 0 )
+                                if( (objs[i].m_blocked[m_filterID]&obj::Block_TOP) == 0 )
                                     goto skipTriangleResolving;
-                                if( (objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) == 0 )
+                                if( (objs[i].m_blocked[m_filterID]&obj::Block_BOTTOM) == 0 )
                                 {
-                                    if(pl.m_velocityY < objs[i].m_velocityY)
+                                    if(m_velocityY < objs[i].m_velocityY)
                                         goto skipTriangleResolving;
-                                    if( (pl.bottomOld() > objs[i].m_oldy + ((objs[i].rightOld() - pl.m_oldx - pl.m_oldw) * k) - 0) )
+                                    if( (bottomOld() > objs[i].m_oldy + ((objs[i].rightOld() - m_oldx - m_oldw) * k) - 0) )
                                         goto skipTriangleResolving;
                                 }
                             }
 
-                            pl.m_y = objs[i].m_y + ( (objs[i].right() - pl.m_x - pl.m_w) * k) - pl.m_h;
-                            pl.m_velocityY = objs[i].m_velocityY;
-                            pl.m_onSlopeFloor = true;
-                            pl.m_onSlopeFloorShape = objs[i].m_id;
-                            pl.m_onSlopeFloorRect  = objs[i].rect();
-                            if( (pl.m_velocityX < 0.0) || !pl.m_onSlopeFloorTopAlign)
+                            m_y = objs[i].m_y + ( (objs[i].right() - m_x - m_w) * k) - m_h;
+                            m_velocityY = objs[i].m_velocityY;
+                            m_onSlopeFloor = true;
+                            m_onSlopeFloorShape = objs[i].m_id;
+                            m_onSlopeFloorRect  = objs[i].rect();
+                            if( (m_velocityX < 0.0) || !m_onSlopeFloorTopAlign)
                             {
-                                pl.m_velocityY = objs[i].m_velocityY -pl.m_velocityX * k;
-                                pl.m_onSlopeYAdd = 0.0;
+                                m_velocityY = objs[i].m_velocityY -m_velocityX * k;
+                                m_onSlopeYAdd = 0.0;
                             } else {
-                                pl.m_onSlopeYAdd = -pl.m_velocityX * k;
-                                if((pl.m_onSlopeYAdd < 0.0) && (pl.bottom() + pl.m_onSlopeYAdd < objs[i].m_y))
-                                    pl.m_onSlopeYAdd = -fabs(pl.bottom() - objs[i].m_y);
+                                m_onSlopeYAdd = -m_velocityX * k;
+                                if((m_onSlopeYAdd < 0.0) && (bottom() + m_onSlopeYAdd < objs[i].m_y))
+                                    m_onSlopeYAdd = -fabs(bottom() - objs[i].m_y);
                             }
-                            pl.m_stand = true;
-                            pl.m_standOnYMovable = (objs[i].m_velocityY != 0.0);
+                            m_stand = true;
+                            m_standOnYMovable = (objs[i].m_velocityY != 0.0);
                             if(doSpeedStack)
                             {
-                                pl.m_velocityX = pl.m_velocityXsrc + objs[i].m_velocityX;
+                                m_velocityX = m_velocityXsrc + objs[i].m_velocityX;
                                 speedSum += objs[i].m_velocityX;
                                 if(objs[i].m_velocityX != 0.0)
                                     speedNum += 1.0;
@@ -1138,16 +1134,16 @@ void MiniPhysics::processCollisions()
                             doCliffCheck = true;
                             l_clifCheck.push_back(&objs[i]);
                             l_contactB.push_back(&objs[i]);
-                            if(pl.m_onSlopeCeiling)
+                            if(m_onSlopeCeiling)
                             {
                                 if( findMinimalHeight(objs[i].m_id, objs[i].rect(), objs[i].m_velocityX,
-                                                  pl.m_onSlopeCeilingShape, pl.m_onSlopeCeilingRect,
-                                                  pl.m_w, pl.m_h, &pl.m_x, &pl.m_y, &pl.m_velocityXsrc,
-                                                  pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
+                                                  m_onSlopeCeilingShape, m_onSlopeCeilingRect,
+                                                  m_w, m_h, &m_x, &m_y, &m_velocityXsrc,
+                                                  m_onSlopeCeiling, m_onSlopeFloor) )
                                 {
-                                    //pl.m_velX_source = 0.0;
+                                    //m_velX_source = 0.0;
                                     doSpeedStack = false;
-                                    pl.m_velocityX = pl.m_velocityXsrc;
+                                    m_velocityX = m_velocityXsrc;
                                     speedSum = 0.0;
                                     speedNum = 0.0;
                                 }
@@ -1156,87 +1152,87 @@ void MiniPhysics::processCollisions()
                         break;
                     case obj::SL_LeftTop:
                         /* *************** Resolve collision with corner on the left bottom ************************* */
-                        if( pl.left() <= objs[i].left() )
+                        if( left() <= objs[i].left() )
                         {
-                            if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) != 0 ) &&
-                                (pl.top() < objs[i].top()) )
+                            if( ( (objs[i].m_blocked[m_filterID]&obj::Block_TOP) != 0 ) &&
+                                (top() < objs[i].top()) )
                                 goto tipRectT;
-                            if( objs[i].m_blocked[pl.m_filterID] == obj::Block_ALL )
+                            if( objs[i].m_blocked[m_filterID] == obj::Block_ALL )
                             {
-                                if( (pl.top() <= objs[i].bottom()) &&
-                                   ((pl.left() < objs[i].left()) || (pl.m_velocityX <= 0.0)) )
+                                if( (top() <= objs[i].bottom()) &&
+                                   ((left() < objs[i].left()) || (m_velocityX <= 0.0)) )
                                     goto tipRectB;
                             } else {
-                                if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) != 0 ) &&
-                                   (pl.top() < objs[i].bottom()) && ( pl.topOld() >= objs[i].bottomOld() ) &&
-                                   ((pl.left() < objs[i].left()) || (pl.m_velocityX <= 0.0)) )
+                                if( ( (objs[i].m_blocked[m_filterID]&obj::Block_BOTTOM) != 0 ) &&
+                                   (top() < objs[i].bottom()) && ( topOld() >= objs[i].bottomOld() ) &&
+                                   ((left() < objs[i].left()) || (m_velocityX <= 0.0)) )
                                     goto tipRectB;
                             }
                         }
                         /* ****************** Resolve collision with upper corner on left top side ****************** */
-                        else if( ( pl.top() < objs[i].top() )  &&
-                                 ((!pl.m_onSlopeCeilingOld && (pl.topOld() < objs[i].topOld())) ||
-                                   (pl.m_onSlopeCeilingShape != objs[i].m_id)) )
+                        else if( ( top() < objs[i].top() )  &&
+                                 ((!m_onSlopeCeilingOld && (topOld() < objs[i].topOld())) ||
+                                   (m_onSlopeCeilingShape != objs[i].m_id)) )
                         {
                             if(!colH)
                             {
-                                if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) != 0 ) &&
-                                    objs[i].betweenH(pl.left(), pl.right()) && (pl.m_velocityY <= 0.0) )
+                                if( ( (objs[i].m_blocked[m_filterID]&obj::Block_TOP) != 0 ) &&
+                                    objs[i].betweenH(left(), right()) && (m_velocityY <= 0.0) )
                                     goto tipRectT;
                             } else {
-                                if( pl.centerX() < objs[i].centerX() )
+                                if( centerX() < objs[i].centerX() )
                                 {
-                                    if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_LEFT) != 0 ) &&
-                                        (pl.m_velocityX >= 0.0) )
+                                    if( ( (objs[i].m_blocked[m_filterID]&obj::Block_LEFT) != 0 ) &&
+                                        (m_velocityX >= 0.0) )
                                         goto tipRectL;
                                 }
                                 else
                                 {
-                                    if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_RIGHT) != 0 ) &&
-                                        (pl.m_velocityX <= 0.0))
+                                    if( ( (objs[i].m_blocked[m_filterID]&obj::Block_RIGHT) != 0 ) &&
+                                        (m_velocityX <= 0.0))
                                         goto tipRectR;
                                 }
                             }
                         }
                         /* ********************* Resolve collision with bottom slope surface *************************** */
-                        else if(pl.m_y < objs[i].bottom() - ((pl.m_x - objs[i].m_x) * k) )
+                        else if(m_y < objs[i].bottom() - ((m_x - objs[i].m_x) * k) )
                         {
-                            if( (objs[i].m_blocked[pl.m_filterID] != obj::Block_ALL) && (!pl.m_onSlopeCeilingOld) )
+                            if( (objs[i].m_blocked[m_filterID] != obj::Block_ALL) && (!m_onSlopeCeilingOld) )
                             {
-                                if((objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) == 0)
+                                if((objs[i].m_blocked[m_filterID]&obj::Block_BOTTOM) == 0)
                                     goto skipTriangleResolving;
-                                if( (objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) == 0 )
+                                if( (objs[i].m_blocked[m_filterID]&obj::Block_TOP) == 0 )
                                 {
-                                    if(pl.m_velocityY > objs[i].m_velocityY)
+                                    if(m_velocityY > objs[i].m_velocityY)
                                         goto skipTriangleResolving;
-                                    if( pl.topOld() < objs[i].bottomOld() - ((pl.m_oldx - objs[i].m_oldx) * k) )
+                                    if( topOld() < objs[i].bottomOld() - ((m_oldx - objs[i].m_oldx) * k) )
                                         goto skipTriangleResolving;
                                 }
                             }
 
-                            pl.m_y    = objs[i].bottom() - ((pl.m_x - objs[i].m_x) * k);
-                            if( pl.m_velocityX < 0.0)
+                            m_y    = objs[i].bottom() - ((m_x - objs[i].m_x) * k);
+                            if( m_velocityX < 0.0)
                             {
-                                pl.m_velocityY = objs[i].m_velocityY - pl.m_velocityX * k;
+                                m_velocityY = objs[i].m_velocityY - m_velocityX * k;
                             } else {
-                                pl.m_velocityY = objs[i].m_velocityY;
+                                m_velocityY = objs[i].m_velocityY;
                             }
-                            pl.m_onSlopeCeiling = true;
-                            pl.m_onSlopeCeilingShape = objs[i].m_id;
-                            pl.m_onSlopeCeilingRect  = objs[i].rect();
+                            m_onSlopeCeiling = true;
+                            m_onSlopeCeilingShape = objs[i].m_id;
+                            m_onSlopeCeilingRect  = objs[i].rect();
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
                             l_contactT.push_back(&objs[i]);
-                            if(pl.m_onSlopeFloor)
+                            if(m_onSlopeFloor)
                             {
-                                if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect, 0.0,
+                                if( findMinimalHeight(m_onSlopeFloorShape, m_onSlopeFloorRect, 0.0,
                                                       objs[i].m_id, objs[i].rect(),
-                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y, &pl.m_velocityXsrc,
-                                                      pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
+                                                      m_w, m_h, &m_x, &m_y, &m_velocityXsrc,
+                                                      m_onSlopeCeiling, m_onSlopeFloor) )
                                 {
-                                    //pl.m_velX_source = 0.0;
+                                    //m_velX_source = 0.0;
                                     doSpeedStack = false;
-                                    pl.m_velocityX = pl.m_velocityXsrc;
+                                    m_velocityX = m_velocityXsrc;
                                     speedSum = 0.0;
                                     speedNum = 0.0;
                                 }
@@ -1245,87 +1241,87 @@ void MiniPhysics::processCollisions()
                         break;
                     case obj::SL_RightTop:
                         /* *************** Resolve collision with corner on the right bottom ************************* */
-                        if(pl.right() >= objs[i].right())
+                        if(right() >= objs[i].right())
                         {
-                            if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) != 0 ) &&
-                                (pl.top() < objs[i].top()) )
+                            if( ( (objs[i].m_blocked[m_filterID]&obj::Block_TOP) != 0 ) &&
+                                (top() < objs[i].top()) )
                                 goto tipRectT;
-                            if( objs[i].m_blocked[pl.m_filterID] == obj::Block_ALL )
+                            if( objs[i].m_blocked[m_filterID] == obj::Block_ALL )
                             {
-                                if( (pl.m_y < objs[i].bottom()) &&
-                                    ((pl.right() > objs[i].right()) || (pl.m_velocityX >= 0.0)) )
+                                if( (m_y < objs[i].bottom()) &&
+                                    ((right() > objs[i].right()) || (m_velocityX >= 0.0)) )
                                     goto tipRectB;
                             } else {
-                                if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) != 0 ) &&
-                                   (pl.top() < objs[i].bottom()) && ( pl.topOld() >= objs[i].bottomOld() ) &&
-                                   ((pl.right() > objs[i].right()) || (pl.m_velocityX >= 0.0)) )
+                                if( ( (objs[i].m_blocked[m_filterID]&obj::Block_BOTTOM) != 0 ) &&
+                                   (top() < objs[i].bottom()) && ( topOld() >= objs[i].bottomOld() ) &&
+                                   ((right() > objs[i].right()) || (m_velocityX >= 0.0)) )
                                     goto tipRectB;
                             }
                         }
                         /* ****************** Resolve collision with upper corner on right top side ****************** */
-                        else if( ( pl.top() < objs[i].top() )  &&
-                                 ((!pl.m_onSlopeCeilingOld && (pl.topOld() < objs[i].topOld())) ||
-                                   (pl.m_onSlopeCeilingShape != objs[i].m_id)) )
+                        else if( ( top() < objs[i].top() )  &&
+                                 ((!m_onSlopeCeilingOld && (topOld() < objs[i].topOld())) ||
+                                   (m_onSlopeCeilingShape != objs[i].m_id)) )
                         {
                             if(!colH)
                             {
-                                if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) != 0 ) &&
-                                    objs[i].betweenH(pl.left(), pl.right()) && (pl.m_velocityY <= 0.0) )
+                                if( ( (objs[i].m_blocked[m_filterID]&obj::Block_TOP) != 0 ) &&
+                                    objs[i].betweenH(left(), right()) && (m_velocityY <= 0.0) )
                                     goto tipRectT;
                             } else {
-                                if( pl.centerX() < objs[i].centerX() )
+                                if( centerX() < objs[i].centerX() )
                                 {
-                                    if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_LEFT) != 0 ) &&
-                                        (pl.m_velocityX >= 0.0))
+                                    if( ( (objs[i].m_blocked[m_filterID]&obj::Block_LEFT) != 0 ) &&
+                                        (m_velocityX >= 0.0))
                                         goto tipRectL;
                                 }
                                 else
                                 {
-                                    if( ( (objs[i].m_blocked[pl.m_filterID]&obj::Block_RIGHT) != 0 ) &&
-                                        (pl.m_velocityX <= 0.0))
+                                    if( ( (objs[i].m_blocked[m_filterID]&obj::Block_RIGHT) != 0 ) &&
+                                        (m_velocityX <= 0.0))
                                         goto tipRectR;
                                 }
                             }
                         }
                         /* ********************* Resolve collision with bottom slope surface *************************** */
-                        else if(pl.m_y < objs[i].bottom() - ((objs[i].right() - pl.m_x - pl.m_w) * k))
+                        else if(m_y < objs[i].bottom() - ((objs[i].right() - m_x - m_w) * k))
                         {
-                            if( (objs[i].m_blocked[pl.m_filterID] != obj::Block_ALL) && (!pl.m_onSlopeCeilingOld) )
+                            if( (objs[i].m_blocked[m_filterID] != obj::Block_ALL) && (!m_onSlopeCeilingOld) )
                             {
-                                if((objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) == 0)
+                                if((objs[i].m_blocked[m_filterID]&obj::Block_BOTTOM) == 0)
                                     goto skipTriangleResolving;
-                                if( (objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) == 0 )
+                                if( (objs[i].m_blocked[m_filterID]&obj::Block_TOP) == 0 )
                                 {
-                                    if(pl.m_velocityY > objs[i].m_velocityY)
+                                    if(m_velocityY > objs[i].m_velocityY)
                                         goto skipTriangleResolving;
-                                    if( pl.m_oldy < objs[i].bottomOld() - ((objs[i].rightOld() - pl.m_oldx - pl.m_oldw) * k) )
+                                    if( m_oldy < objs[i].bottomOld() - ((objs[i].rightOld() - m_oldx - m_oldw) * k) )
                                         goto skipTriangleResolving;
                                 }
                             }
 
-                            pl.m_y    = objs[i].bottom() - ((objs[i].right() - pl.m_x - pl.m_w) * k);
-                            if( pl.m_velocityX > 0.0)
+                            m_y    = objs[i].bottom() - ((objs[i].right() - m_x - m_w) * k);
+                            if( m_velocityX > 0.0)
                             {
-                                pl.m_velocityY = objs[i].m_velocityY + pl.m_velocityX * k ;
+                                m_velocityY = objs[i].m_velocityY + m_velocityX * k ;
                             } else {
-                                pl.m_velocityY = objs[i].m_velocityY;
+                                m_velocityY = objs[i].m_velocityY;
                             }
-                            pl.m_onSlopeCeiling = true;
-                            pl.m_onSlopeCeilingShape = objs[i].m_id;
-                            pl.m_onSlopeCeilingRect  = objs[i].rect();
+                            m_onSlopeCeiling = true;
+                            m_onSlopeCeilingShape = objs[i].m_id;
+                            m_onSlopeCeilingRect  = objs[i].rect();
                             contactAt = obj::Contact_Bottom;
                             doHit = true;
                             l_contactT.push_back(&objs[i]);
-                            if(pl.m_onSlopeFloor)
+                            if(m_onSlopeFloor)
                             {
-                                if( findMinimalHeight(pl.m_onSlopeFloorShape, pl.m_onSlopeFloorRect, 0.0f,
+                                if( findMinimalHeight(m_onSlopeFloorShape, m_onSlopeFloorRect, 0.0f,
                                                       objs[i].m_id, objs[i].rect(),
-                                                      pl.m_w, pl.m_h, &pl.m_x, &pl.m_y, &pl.m_velocityXsrc,
-                                                      pl.m_onSlopeCeiling, pl.m_onSlopeFloor) )
+                                                      m_w, m_h, &m_x, &m_y, &m_velocityXsrc,
+                                                      m_onSlopeCeiling, m_onSlopeFloor) )
                                 {
-                                    //pl.m_velX_source = 0.0;
+                                    //m_velX_source = 0.0;
                                     doSpeedStack = false;
-                                    pl.m_velocityX = pl.m_velocityXsrc;
+                                    m_velocityX = m_velocityXsrc;
                                     speedSum = 0.0;
                                     speedNum = 0.0;
                                 }
@@ -1360,9 +1356,9 @@ void MiniPhysics::processCollisions()
                 //Catching 90-degree angle impacts of corners with rectangles
                 if( !colH && !colV )
                 {
-                    if(tm == i)
+                    if(tm == signed(i))
                     {
-                        if( fabs(pl.m_velocityY) > fabs(pl.m_velocityX) )
+                        if( fabs(m_velocityY) > fabs(m_velocityX) )
                             goto tipRectV;
                         else
                             goto tipRectH;
@@ -1375,51 +1371,51 @@ void MiniPhysics::processCollisions()
         }
 
         /* ********************Find wall touch blocks************************ */
-        if(  figureTouch(pl, objs[i], 0.0, -1.0) &&
-            !figureTouch(pl, objs[i], 0.0, 0.0) )
+        if(  figureTouch(*this, objs[i], 0.0, -1.0) &&
+            !figureTouch(*this, objs[i], 0.0, 0.0) )
         {
-            if( pl.betweenV( objs[i].centerY() ) )
+            if( betweenV( objs[i].centerY() ) )
             {
-                if((pl.right() <= objs[i].left()) &&
+                if((right() <= objs[i].left()) &&
                    isBlockLeftWall(objs[i].m_id) &&
-                    ((objs[i].m_blocked[pl.m_filterID]&obj::Block_LEFT) != 0) &&
+                    ((objs[i].m_blocked[m_filterID]&obj::Block_LEFT) != 0) &&
                     (oldSpeedX >= objs[i].m_velocityX) )
                 {
                     //objs[i].m_touch = obj::Contact_Left;
-                    pl.m_touchRightWall = true;
+                    m_touchRightWall = true;
                     if(!collideAtRight)
                         collideAtRight = &objs[i];
                 }
                 else
-                if( (pl.left() >= objs[i].right()) &&
+                if( (left() >= objs[i].right()) &&
                     isBlockRightWall(objs[i].m_id) &&
-                    ((objs[i].m_blocked[pl.m_filterID]&obj::Block_RIGHT) != 0) &&
+                    ((objs[i].m_blocked[m_filterID]&obj::Block_RIGHT) != 0) &&
                     (oldSpeedX <= objs[i].m_velocityX))
                 {
                     //objs[i].m_touch = obj::Contact_Right;
-                    pl.m_touchLeftWall = true;
+                    m_touchLeftWall = true;
                     if(!collideAtLeft)
                         collideAtLeft = &objs[i];
                 }
             }
 
             if( ((contactAt == obj::Contact_None) || (contactAt == obj::Contact_Skipped)) &&//Don't push duplicates
-                pl.betweenV(pl.top(), pl.bottom()))
+                betweenV(top(), bottom()))
             {
-                if( (pl.right() <= objs[i].left()) &&
+                if( (right() <= objs[i].left()) &&
                      isBlockLeftWall(objs[i].m_id) &&
-                    ((objs[i].m_blocked[pl.m_filterID]&obj::Block_LEFT) != 0) &&
+                    ((objs[i].m_blocked[m_filterID]&obj::Block_LEFT) != 0) &&
                     (oldSpeedX >= objs[i].m_velocityX) &&
-                    pl.m_keys.right)
+                    m_keys.right)
                 {
                     l_contactR.push_back(&objs[i]);
                 }
                 else
-                if( (pl.left() >= objs[i].right()) &&
+                if( (left() >= objs[i].right()) &&
                     isBlockRightWall(objs[i].m_id) &&
-                    ((objs[i].m_blocked[pl.m_filterID]&obj::Block_RIGHT) != 0) &&
+                    ((objs[i].m_blocked[m_filterID]&obj::Block_RIGHT) != 0) &&
                     (oldSpeedX <= objs[i].m_velocityX) &&
-                    pl.m_keys.left)
+                    m_keys.left)
                 {
                     l_contactL.push_back(&objs[i]);
                 }
@@ -1428,24 +1424,24 @@ void MiniPhysics::processCollisions()
 
         /* ***********Find touching blocks (needed to process danger surfaces)*********** */
         if( ((contactAt == obj::Contact_None) || (contactAt == obj::Contact_Skipped)) &&//Don't push duplicates
-            figureTouch(pl, objs[i], -1.0, 0.0) &&
-            !figureTouch(pl, objs[i], 0.0, 0.0) )
+            figureTouch(*this, objs[i], -1.0, 0.0) &&
+            !figureTouch(*this, objs[i], 0.0, 0.0) )
         {
-            if(pl.betweenH(pl.left(), pl.right()))
+            if(betweenH(left(), right()))
             {
-                if( (pl.bottom() <= objs[i].top()) &&
+                if( (bottom() <= objs[i].top()) &&
                     isBlockFloor(objs[i].m_id) &&
-                    ((objs[i].m_blocked[pl.m_filterID]&obj::Block_TOP) != 0))
+                    ((objs[i].m_blocked[m_filterID]&obj::Block_TOP) != 0))
                 {
                     l_contactB.push_back(&objs[i]);
                 }
                 else
-                if( (pl.top() >= objs[i].bottom()) &&
+                if( (top() >= objs[i].bottom()) &&
                     ( isBlockCeiling(objs[i].m_id) /*||
-                      ( (objs[i].m_id == obj::SL_RightTop) && pl.betweenH(objs[i].left()) )||
-                      ( (objs[i].m_id == obj::SL_LeftTop) && pl.betweenH(objs[i].right()) )*/
+                      ( (objs[i].m_id == obj::SL_RightTop) && betweenH(objs[i].left()) )||
+                      ( (objs[i].m_id == obj::SL_LeftTop) && betweenH(objs[i].right()) )*/
                      ) &&
-                    ((objs[i].m_blocked[pl.m_filterID]&obj::Block_BOTTOM) != 0) &&
+                    ((objs[i].m_blocked[m_filterID]&obj::Block_BOTTOM) != 0) &&
                     (oldSpeedY < objs[i].m_velocityY) )
                 {
                     l_contactT.push_back(&objs[i]);
@@ -1460,12 +1456,12 @@ void MiniPhysics::processCollisions()
         }
 
         if( (objs[i].m_id == obj::SL_Rect) &&
-            (objs[i].m_blocked[pl.m_filterID]==obj::Block_ALL) &&
-            recttouch(pl.m_oldx,      pl.m_oldy,        pl.m_oldw,      pl.m_oldh,
+            (objs[i].m_blocked[m_filterID]==obj::Block_ALL) &&
+            recttouch(m_oldx,      m_oldy,        m_oldw,      m_oldh,
                       objs[i].m_oldx, objs[i].m_oldy,   objs[i].m_oldw, objs[i].m_oldh) )
         {
             l_possibleCrushers.push_back(&objs[i]);
-            pl.m_crushed = true;
+            m_crushed = true;
         }
     }
     if(tm >= 0)
@@ -1475,15 +1471,15 @@ void MiniPhysics::processCollisions()
         goto tipRectShape;
     }
 
-    if(pl.m_crushed && pl.m_crushedOld )
+    if(m_crushed && m_crushedOld )
     {
-        if(pl.m_stand)
+        if(m_stand)
         {
             /*HELP ME TO AVOID THIS CRAP!!!!*/
             doSpeedStack = false;
-            pl.m_velocityXsrc = 0.0;
-            pl.m_velocityX = 0.0;
-            pl.m_x += 8.0;
+            m_velocityXsrc = 0.0;
+            m_velocityX = 0.0;
+            m_x += 8.0;
         }
     }
 
@@ -1498,7 +1494,7 @@ void MiniPhysics::processCollisions()
                 continue;
             if(!candidate)
                 candidate = x;
-            if( x->betweenH(pl.centerX()) )
+            if( x->betweenH(centerX()) )
             {
                 candidate = x;
             }
@@ -1514,19 +1510,19 @@ void MiniPhysics::processCollisions()
         double lefter  = candidate->left();
         double righter = candidate->right();
         findHorizontalBoundaries(l_clifCheck, lefter, righter);
-        if((pl.m_velocityXsrc <= 0.0) && (lefter >= pl.centerX()) )
-            pl.m_cliff = true;
-        if((pl.m_velocityXsrc >= 0.0) && (righter <= pl.centerX()) )
-            pl.m_cliff = true;
+        if((m_velocityXsrc <= 0.0) && (lefter >= centerX()) )
+            m_cliff = true;
+        if((m_velocityXsrc >= 0.0) && (righter <= centerX()) )
+            m_cliff = true;
     } else {
-        if(!pl.m_stand)
+        if(!m_stand)
             l_clifCheck.clear();
     }
 
     /* *********************** Check all collided sides ***************************** */
     for(int i=0; i<l_contactL.size(); i++)
     {
-        if(l_contactL[i]->betweenV(pl.top()+1.0, pl.bottom()-1.0))
+        if(l_contactL[i]->betweenV(top()+1.0, bottom()-1.0))
            l_contactL[i]->m_touch = obj::Contact_Right;
         else
         {
@@ -1536,7 +1532,7 @@ void MiniPhysics::processCollisions()
     }
     for(int i=0; i<l_contactR.size(); i++)
     {
-        if(l_contactR[i]->betweenV(pl.top()+1.0, pl.bottom()-1.0))
+        if(l_contactR[i]->betweenV(top()+1.0, bottom()-1.0))
            l_contactR[i]->m_touch = obj::Contact_Left;
         else
         {
@@ -1546,7 +1542,7 @@ void MiniPhysics::processCollisions()
     }
     for(int i=0; i<l_contactT.size(); i++)
     {
-        if(l_contactT[i]->betweenH(pl.left()+1.0, pl.right()-1.0))
+        if(l_contactT[i]->betweenH(left()+1.0, right()-1.0))
            l_contactT[i]->m_touch = obj::Contact_Bottom;
         else
         {
@@ -1556,7 +1552,7 @@ void MiniPhysics::processCollisions()
     }
     for(int i=0; i<l_contactB.size(); i++)
     {
-        if(l_contactB[i]->betweenH(pl.left()+1.0, pl.right()-1.0))
+        if(l_contactB[i]->betweenH(left()+1.0, right()-1.0))
            l_contactB[i]->m_touch = obj::Contact_Top;
         else
         {
@@ -1571,9 +1567,9 @@ void MiniPhysics::processCollisions()
         //If character got crushed between moving layers
         if(collideAtBottom->m_velocityY < collideAtTop->m_velocityY )
         {
-            pl.m_stand = false;
-            pl.m_y = collideAtTop->bottom();
-            pl.m_velocityY = collideAtTop->m_velocityY;
+            m_stand = false;
+            m_y = collideAtTop->bottom();
+            m_velocityY = collideAtTop->m_velocityY;
             doSpeedStack = false;
             speedNum = 0.0;
             speedSum = 0.0;
@@ -1581,31 +1577,31 @@ void MiniPhysics::processCollisions()
             alive = false;
             #endif
             if( (collideAtTop->m_id == obj::SL_RightTop) &&
-                ( round(pl.right()) == round(collideAtTop->right()) ) )
+                ( round(right()) == round(collideAtTop->right()) ) )
             {
-                pl.m_x = collideAtTop->right() - pl.m_w - 1.0;
+                m_x = collideAtTop->right() - m_w - 1.0;
             } else
             if( (collideAtTop->m_id == obj::SL_LeftTop) &&
-                ( round(pl.left()) == round(collideAtTop->left()) ) )
+                ( round(left()) == round(collideAtTop->left()) ) )
             {
-                pl.m_x = collideAtTop->left() + 1.0;
+                m_x = collideAtTop->left() + 1.0;
             } else
             if( (collideAtBottom->m_id == obj::SL_RightBottom) &&
-                ( round(pl.right()) == round(collideAtBottom->right()) ) )
+                ( round(right()) == round(collideAtBottom->right()) ) )
             {
-                pl.m_x = collideAtBottom->right() - pl.m_w - 1.0;
+                m_x = collideAtBottom->right() - m_w - 1.0;
             } else
             if( (collideAtBottom->m_id == obj::SL_LeftBottom) &&
-                ( round(pl.left()) == round(collideAtBottom->left()) ) )
+                ( round(left()) == round(collideAtBottom->left()) ) )
             {
-                pl.m_x = collideAtBottom->left() + 1.0;
+                m_x = collideAtBottom->left() + 1.0;
             } else
-            if( (collideAtTop->m_blocked[pl.m_filterID]==obj::Block_ALL) &&
-                (collideAtBottom->m_blocked[pl.m_filterID]==obj::Block_ALL) &&
-                  (pl.m_h > fabs(collideAtTop->bottom() - collideAtBottom->top())) )
+            if( (collideAtTop->m_blocked[m_filterID]==obj::Block_ALL) &&
+                (collideAtBottom->m_blocked[m_filterID]==obj::Block_ALL) &&
+                  (m_h > fabs(collideAtTop->bottom() - collideAtBottom->top())) )
             {
-                pl.m_crushedHardDelay = 30;
-                pl.m_crushedHard = true;
+                m_crushedHardDelay = 30;
+                m_crushedHard = true;
                 printf("CRUSHED BETWEEN VERTICAL!!!\n");
                 fflush(stdout);
             }
@@ -1620,12 +1616,12 @@ void MiniPhysics::processCollisions()
             #ifdef STOP_LOOP_ON_CRUSH
             alive = false;
             #endif
-            if( (collideAtLeft->m_blocked[pl.m_filterID]==obj::Block_ALL) &&
-                (collideAtRight->m_blocked[pl.m_filterID]==obj::Block_ALL) &&
-                 (pl.m_w > fabs(collideAtLeft->right() - collideAtRight->left())) )
+            if( (collideAtLeft->m_blocked[m_filterID]==obj::Block_ALL) &&
+                (collideAtRight->m_blocked[m_filterID]==obj::Block_ALL) &&
+                 (m_w > fabs(collideAtLeft->right() - collideAtRight->left())) )
             {
-                pl.m_crushedHardDelay = 30;
-                pl.m_crushedHard = true;
+                m_crushedHardDelay = 30;
+                m_crushedHard = true;
                 printf("CRUSHED BETWEEN HORIZONTAL!!!\n");
                 fflush(stdout);
             }
@@ -1635,10 +1631,10 @@ void MiniPhysics::processCollisions()
 
     if( doSpeedStack && (speedNum > 1.0) && (speedSum != 0.0) )
     {
-        pl.m_velocityX = pl.m_velocityXsrc + (speedSum/speedNum);
+        m_velocityX = m_velocityXsrc + (speedSum/speedNum);
     }
-
 }
+
 
 void MiniPhysics::loop()
 {
@@ -1647,7 +1643,14 @@ void MiniPhysics::loop()
     {
     #endif
         iterateStep();
-        processCollisions();
+        //processCollisions();
+        //Return player to top back on fall down
+        if(pl.m_y > height()-cameraY)
+        {
+            pl.m_y = 64;
+            pl.m_oldy = 64;
+        }
+        pl.processCollisions(objs);
     #ifdef STOP_LOOP_ON_CRUSH
     }
     #endif
@@ -1680,7 +1683,7 @@ void MiniPhysics::paintEvent(QPaintEvent *)
                   Qt::SquareCap,
                   Qt::BevelJoin));
     p.setFont(m_font);
-    for(int i=0; i<objs.size(); i++)
+    for(unsigned int i=0; i<objs.size(); i++)
     {
         objs[i].paint(p, cameraX, cameraY);
     }
@@ -1688,4 +1691,3 @@ void MiniPhysics::paintEvent(QPaintEvent *)
     p.drawText(10, 10, QString("Hole-Run = %1").arg(pl.m_allowHoleRuning) );
     p.drawText(10, 30, QString("Align on top-slope = %1").arg(pl.m_onSlopeFloorTopAlign) );
 }
-

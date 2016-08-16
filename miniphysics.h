@@ -113,6 +113,31 @@ public:
         Block_ALL       = 0xF,
     };
 
+    struct Momentum {
+        Momentum() :
+            x(0.0),
+            y(0.0),
+            w(32.0),
+            h(32.0) {}
+        double x;    double y;    double w;    double h;
+        double oldx; double oldy; double oldw; double oldh;
+        double velX; double velY;
+
+        inline double left(){return x;}
+        inline double top(){return y;}
+        inline double right(){return x+w;}
+        inline double bottom(){return y+h;}
+        inline double centerX(){return x+(w/2.0);}
+        inline double centerY(){return y+(h/2.0);}
+
+        inline double leftOld(){return oldx;}
+        inline double topOld(){return oldy;}
+        inline double rightOld(){return oldx+oldw;}
+        inline double bottomOld(){return oldy+oldh;}
+        inline double centerXold(){return oldx+(oldw/2.0);}
+        inline double centerYold(){return oldy+(oldh/2.0);}
+    };
+
     obj(int x=0, int y=0, int id=0) :
         obj_DEMOONLY(),
         m_id(id),
@@ -281,19 +306,23 @@ public:
             p.drawText(x+m_w+10, y+10, QString("R"));
     }
 
+    void processCollisions(std::vector<obj> &objs);
+
     int     m_id;
     inline  double top()    { return m_y; }
     inline  double left()   { return m_x; }
     inline  double right()  { return m_x+m_w; }
     inline  double bottom() { return m_y+m_h; }
+    inline  double centerX() { return m_x+(m_w/2.0); }
+    inline  double centerY() { return m_y+(m_h/2.0); }
+
     inline  double topOld()    { return m_oldy; }
     inline  double leftOld()   { return m_oldx; }
     inline  double rightOld()  { return m_oldx+m_oldw; }
     inline  double bottomOld() { return m_oldy+m_oldh; }
-    inline  double centerX() { return m_x+(m_w/2.0); }
-    inline  double centerY() { return m_y+(m_h/2.0); }
     inline  double centerXold() { return m_oldx+(m_oldw/2.0); }
     inline  double centerYold() { return m_oldy+(m_oldy/2.0); }
+
     inline  bool   betweenH(double left, double right) { if(right < this->left()) return false; if(left > this->right()) return false; return true; }
     inline  bool   betweenH(double X) { return (X >= left()) && (X <= right()); }
     inline  bool   betweenV(double top, double bottom) { if(bottom < this->top()) return false; if(top > this->bottom()) return false; return true; }
@@ -353,7 +382,6 @@ public:
     void initTestCommon(LevelData *file);
 protected:
     void iterateStep();
-    void processCollisions();
     void loop();
     void keyPressEvent(QKeyEvent *event);
     void keyReleaseEvent(QKeyEvent *event);
@@ -364,8 +392,8 @@ private:
     double cameraY;
     int lastTest;
     QHash<int, bool> keyMap;
-    QList<obj>  objs;
-    QList<obj*> movingBlock;
+    std::vector<obj>  objs;
+    std::vector<unsigned int> movingBlock;
     obj     pl;
     QTimer looper;
     QOpenGLFunctions *f;
