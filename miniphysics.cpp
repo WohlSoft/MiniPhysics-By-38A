@@ -319,6 +319,9 @@ void physBody::iterateStep()
         m_momentum.y += m_momentum.velY;
     }
     m_jumpPressed = m_keys.jump;
+
+    m_moveLeft = m_keys.left;
+    m_moveRight = m_keys.right;
 }
 
 
@@ -656,7 +659,9 @@ void physBody::processCollisions(PGE_RenderList &objs)
             continue;
         }
 
+        #ifdef IS_MINIPHYSICS_DEMO_PROGRAM
         CUR->m_bumped = false;
+        #endif
         contactAt = PhysObject::Contact_None;
         /* ********************Collect blocks to hit************************ */
         if( figureTouch(*this, objs[i], -1.0, 0.0) )
@@ -1375,7 +1380,7 @@ void physBody::processCollisions(PGE_RenderList &objs)
                      isBlockLeftWall(CUR->m_shape) &&
                     ((CUR->m_blocked[m_filterID]&PhysObject::Block_LEFT) != 0) &&
                     (oldSpeedX >= CUR->m_momentum.velX) &&
-                    m_keys.right)
+                    m_moveRight)
                 {
                     l_contactR.push_back(CUR);
                 }
@@ -1384,7 +1389,7 @@ void physBody::processCollisions(PGE_RenderList &objs)
                     isBlockRightWall(CUR->m_shape) &&
                     ((CUR->m_blocked[m_filterID]&PhysObject::Block_RIGHT) != 0) &&
                     (oldSpeedX <= CUR->m_momentum.velX) &&
-                    m_keys.left)
+                    m_moveLeft)
                 {
                     l_contactL.push_back(CUR);
                 }
@@ -1470,7 +1475,32 @@ void physBody::processCollisions(PGE_RenderList &objs)
             }
         }
         if(candidate)
+        {
+            #ifdef IS_MINIPHYSICS_DEMO_PROGRAM
             candidate->m_bumped = true;
+            #else
+            if(CUR->type == LVLBlock)
+            {
+                LVL_Block* nearest = static_cast<LVL_Block*>(CUR);
+                if(type==LVLPlayer)
+                {
+                    LVL_Player* plr = static_cast<LVL_Player*>(this);
+                    processCharacterSwitchBlock(plr, nearest);//Do transformation if needed
+                    long npcid=nearest->data.npc_id;
+                    nearest->hit(LVL_Block::up, this, 1);
+                    if( nearest->setup->setup.hitable ||
+                        (npcid !=0 ) ||
+                        (nearest->destroyed) ||
+                        (nearest->setup->setup.bounce) )
+                    {
+                        plr->bump(false, speedY());
+                    }
+                }
+            } else {
+                PGE_Audio::playSoundByRole(obj_sound_role::BlockHit);
+            }
+            #endif
+        }
     }
 
     /* ***********************Detect a cliff********************************** */

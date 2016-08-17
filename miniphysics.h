@@ -203,6 +203,8 @@ public:
         m_crushedHard(false),
         m_crushedHardDelay(0),
         m_cliff(false),
+        m_moveLeft(false),
+        m_moveRight(false),
         m_onSlopeYAdd(0.0),
         m_allowHoleRuning(false),
         m_onSlopeFloorTopAlign(false),
@@ -229,6 +231,8 @@ public:
         m_crushedHard(o.m_crushedHard),
         m_crushedHardDelay(o.m_crushedHardDelay),
         m_cliff(o.m_cliff),
+        m_moveLeft(o.m_moveLeft),
+        m_moveRight(o.m_moveRight),
         m_slopeFloor(o.m_slopeFloor),
         m_slopeCeiling(o.m_slopeCeiling),
         m_onSlopeYAdd(o.m_onSlopeYAdd),
@@ -386,6 +390,8 @@ public:
     int     m_crushedHardDelay;
     bool    m_cliff;
     /*************************************/
+    bool    m_moveLeft;
+    bool    m_moveRight;
     SlopeState m_slopeFloor;
     SlopeState m_slopeCeiling;
     //! Y-speed add while standing on the slope
