@@ -262,7 +262,7 @@ void MiniPhysics::iterateStep()
 
 void physBody::iterateStep()
 {
-    /*****************Pre-Iteration game logic*****************************/
+    /*****************Apply accelerations and iterate movement********************/
     double Xmod = 0;
     if(m_keys.left ^ m_keys.right)
     {
