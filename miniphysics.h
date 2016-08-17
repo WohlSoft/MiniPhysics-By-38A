@@ -9,32 +9,13 @@
 #include <QHash>
 #include <QFont>
 #include <QPainter>
+#include <vector>
 
 #include "common_features/rectf.h"
 
-//Private Type obj
-//    id As Long
-//    dx As Double
-//    dy As Double
-//    x As Double
-//    y As Double
-//    w As Double
-//    h As Double
-//    spx As Double
-//    spy As Double
-//    st As Boolean
-//End Type
-struct objRect
-{
-    double x;
-    double y;
-    double w;
-    double h;
-    inline double left() {return x;}
-    inline double right() {return x+w;}
-    inline double top() {return y;}
-    inline double bottom() {return y+h;}
-};
+class physBody;
+typedef QVector<physBody> PGE_RenderList;
+typedef int               PGE_SizeT;
 
 struct objControlls
 {
@@ -48,7 +29,7 @@ struct objControlls
     bool jump;
 };
 
-class obj_DEMOONLY
+class physBody_DEMOONLY
 {
 public:
     enum ContactAt{
@@ -60,7 +41,7 @@ public:
         Contact_Skipped
     };
 
-    obj_DEMOONLY():
+    physBody_DEMOONLY():
         m_drawSpeed(false),
         m_bumped(false),
         m_touch(Contact_None),
@@ -68,7 +49,7 @@ public:
         m_keys()
     {}
 
-    obj_DEMOONLY(const obj_DEMOONLY& o) :
+    physBody_DEMOONLY(const physBody_DEMOONLY& o) :
         m_drawSpeed(o.m_drawSpeed),
         m_bumped(o.m_bumped),
         m_touch(o.m_touch),
@@ -84,8 +65,7 @@ public:
     objControlls m_keys;
 };
 
-
-class obj: public obj_DEMOONLY
+class physBody: public physBody_DEMOONLY
 {
 public:
     enum Type {
@@ -113,15 +93,57 @@ public:
         Block_ALL       = 0xF,
     };
 
+    struct objRect
+    {
+        double x;
+        double y;
+        double w;
+        double h;
+        inline double left() {return x;}
+        inline double right() {return x+w;}
+        inline double top() {return y;}
+        inline double bottom() {return y+h;}
+    };
+
     struct Momentum {
         Momentum() :
-            x(0.0),
-            y(0.0),
-            w(32.0),
-            h(32.0) {}
-        double x;    double y;    double w;    double h;
-        double oldx; double oldy; double oldw; double oldh;
-        double velX; double velY;
+            x(0.0),     y(0.0),     w(32.0),    h(32.0),
+            oldx(0.0),  oldy(0.0),  oldw(32.0), oldh(32.0),
+            velX(0.0),  velY(0.0),  velXsrc(0.0)
+        {}
+        Momentum(double _x, double _y) :
+            x(_x),     y(_y),     w(32.0),    h(32.0),
+            oldx(_x),  oldy(_y),  oldw(32.0), oldh(32.0),
+            velX(0.0),  velY(0.0),  velXsrc(0.0)
+        {}
+
+        //! Position X
+        double x;
+        //! Position Y
+        double y;
+        //! Width
+        double w;
+        //! Height
+        double h;
+        //! Previous position X
+        double oldx;
+        //! Previous position Y
+        double oldy;
+        //! Previous width
+        double oldw;
+        //! Previous height
+        double oldh;
+        //! Real (sum of the own and floor speeds) horizontal speed (velocity)
+        double velX;
+        //! Real Vertical speed (velocity)
+        double velY;
+        //! Source (own) horizontal speed (velocity).
+        double velXsrc;
+
+        inline objRect   rect() {return {x, y, w, h}; }
+        inline objRect   rectOld() {return {oldx, oldy, oldw, oldh}; }
+        inline PGE_RectF rectF() {return PGE_RectF(x, y, w, h); }
+        inline PGE_RectF rectOldF() {return PGE_RectF(oldx, oldy, oldw, oldh); }
 
         inline double left(){return x;}
         inline double top(){return y;}
@@ -136,24 +158,30 @@ public:
         inline double bottomOld(){return oldy+oldh;}
         inline double centerXold(){return oldx+(oldw/2.0);}
         inline double centerYold(){return oldy+(oldh/2.0);}
+
+        inline  bool   betweenH(double left, double right) { if(right < x) return false; if(left > x+w) return false; return true; }
+        inline  bool   betweenH(double X) { return (X >= x) && (X <= x+w); }
+        inline  bool   betweenV(double top, double bottom) { if(bottom < y) return false; if(top > y+h) return false; return true; }
+        inline  bool   betweenV(double Y) { return (Y >= y) && (Y <= y+h); }
     };
 
-    obj(int x=0, int y=0, int id=0) :
-        obj_DEMOONLY(),
+
+    struct SlopeState {
+        SlopeState():
+            has(false),
+            hasOld(false),
+            shape(physBody::SL_Rect)
+        {}
+        bool    has;
+        bool    hasOld;
+        objRect rect;
+        int     shape;
+    };
+
+    physBody(int x=0, int y=0, int id=0) :
+        physBody_DEMOONLY(),
         m_id(id),
-        m_posRect(x, y, 32.0, 32.0),
-        m_posRectOld(x, y, 32.0, 32.0),
-        m_x(x),
-        m_y(y),
-        m_oldx(x),
-        m_oldy(y),
-        m_w(32.0),
-        m_h(32.0),
-        m_oldw(32.0),
-        m_oldh(32.0),
-        m_velocityX(0.0),
-        m_velocityXsrc(0.0),
-        m_velocityY(0.0),
+        m_momentum(double(x), double(y)),
         m_touchLeftWall(false),
         m_touchRightWall(false),
         m_stand(false),
@@ -164,35 +192,16 @@ public:
         m_crushedHardDelay(0),
         m_cliff(false),
         m_allowHoleRuning(false),
-        m_onSlopeFloor(false),
-        m_onSlopeFloorOld(false),
         m_onSlopeFloorTopAlign(false),
-        m_onSlopeFloorShape(0),
-        m_onSlopeFloorRect{0.0, 0.0, 0.0, 0.0},
-        m_onSlopeCeiling(false),
-        m_onSlopeCeilingOld(false),
-        m_onSlopeCeilingShape(0),
-        m_onSlopeCeilingRect{0.0, 0.0, 0.0, 0.0},
         m_onSlopeYAdd(0.0),
         m_blocked{Block_ALL, Block_ALL},
         m_filterID(0)
     {}
-    obj(const obj& o) :
-        obj_DEMOONLY(o),
+
+    physBody(const physBody& o) :
+        physBody_DEMOONLY(o),
         m_id(o.m_id),
-        m_posRect(o.m_posRect),
-        m_posRectOld(o.m_posRectOld),
-        m_x(o.m_x),
-        m_y(o.m_y),
-        m_oldx(o.m_oldx),
-        m_oldy(o.m_oldy),
-        m_w(o.m_w),
-        m_h(o.m_h),
-        m_oldw(o.m_oldw),
-        m_oldh(o.m_oldh),
-        m_velocityX(o.m_velocityX),
-        m_velocityXsrc(o.m_velocityXsrc),
-        m_velocityY(o.m_velocityY),
+        m_momentum(o.m_momentum),
         m_touchLeftWall(o.m_touchLeftWall),
         m_touchRightWall(o.m_touchRightWall),
         m_stand(o.m_stand),
@@ -203,25 +212,18 @@ public:
         m_crushedHardDelay(o.m_crushedHardDelay),
         m_cliff(o.m_cliff),
         m_allowHoleRuning(o.m_allowHoleRuning),
-        m_onSlopeFloor(o.m_onSlopeFloor),
-        m_onSlopeFloorOld(o.m_onSlopeFloorOld),
+        m_slopeFloor(o.m_slopeFloor),
+        m_slopeCeiling(o.m_slopeCeiling),
         m_onSlopeFloorTopAlign(o.m_onSlopeFloorTopAlign),
-        m_onSlopeFloorShape(o.m_onSlopeFloorShape),
-        m_onSlopeFloorRect(o.m_onSlopeFloorRect),
-        m_onSlopeCeiling(o.m_onSlopeCeiling),
-        m_onSlopeCeilingOld(o.m_onSlopeCeilingOld),
-        m_onSlopeCeilingShape(o.m_onSlopeCeilingShape),
-        m_onSlopeCeilingRect(o.m_onSlopeCeilingRect),
         m_onSlopeYAdd(o.m_onSlopeYAdd),
         m_blocked{o.m_blocked[0], o.m_blocked[1]},
         m_filterID(o.m_filterID)
-
     {}
 
     void paint(QPainter &p, double cameraX, double cameraY)
     {
-        double x = round(m_x-cameraX);
-        double y = round(m_y-cameraY);
+        double x = round(m_momentum.x-cameraX);
+        double y = round(m_momentum.y-cameraY);
         p.setBrush(Qt::gray);
         p.setOpacity(m_blocked[0]==Block_ALL ? 1.0 : 0.5 );
         if(m_crushed && m_crushedOld)
@@ -262,8 +264,8 @@ public:
             p.setBrush(Qt::green);
         }
 
-        double w = m_w-1.0;
-        double h = m_h-1.0;
+        double w = m_momentum.w-1.0;
+        double h = m_momentum.h-1.0;
 
         QPolygonF poly;
         switch(m_id)
@@ -297,76 +299,46 @@ public:
             p.drawRect(x, y, w, h); break;
         }
         if(m_drawSpeed)
-            p.drawText(x-20, y-5, QString("%1 %2").arg(m_velocityX, 7).arg(m_velocityY, 7) );
+            p.drawText(x-20, y-5, QString("%1 %2").arg(m_momentum.velX, 7).arg(m_momentum.velY, 7) );
         if(m_stand || m_cliff)
-            p.drawText(x+m_w+10, y+2, QString("%1 %2").arg(m_stand?"[G]":"   ").arg(m_cliff?"[CLIFF]":""));
+            p.drawText(x+m_momentum.w+10, y+2, QString("%1 %2").arg(m_stand?"[G]":"   ").arg(m_cliff?"[CLIFF]":""));
         if(m_touchLeftWall)
-            p.drawText(x+m_w+10, y+10, QString("L"));
+            p.drawText(x+m_momentum.w+10, y+10, QString("L"));
         if(m_touchRightWall)
-            p.drawText(x+m_w+10, y+10, QString("R"));
+            p.drawText(x+m_momentum.w+10, y+10, QString("R"));
     }
 
-    void processCollisions(std::vector<obj> &objs);
+    void iterateStep();
 
-    int     m_id;
-    inline  double top()    { return m_y; }
-    inline  double left()   { return m_x; }
-    inline  double right()  { return m_x+m_w; }
-    inline  double bottom() { return m_y+m_h; }
-    inline  double centerX() { return m_x+(m_w/2.0); }
-    inline  double centerY() { return m_y+(m_h/2.0); }
+    void processCollisions(PGE_RenderList &objs);
 
-    inline  double topOld()    { return m_oldy; }
-    inline  double leftOld()   { return m_oldx; }
-    inline  double rightOld()  { return m_oldx+m_oldw; }
-    inline  double bottomOld() { return m_oldy+m_oldh; }
-    inline  double centerXold() { return m_oldx+(m_oldw/2.0); }
-    inline  double centerYold() { return m_oldy+(m_oldy/2.0); }
+    int         m_id;
+    Momentum    m_momentum;
 
-    inline  bool   betweenH(double left, double right) { if(right < this->left()) return false; if(left > this->right()) return false; return true; }
-    inline  bool   betweenH(double X) { return (X >= left()) && (X <= right()); }
-    inline  bool   betweenV(double top, double bottom) { if(bottom < this->top()) return false; if(top > this->bottom()) return false; return true; }
-    inline  bool   betweenV(double Y) { return (Y >= top()) && (Y <= bottom()); }
-    inline  objRect rect() { return {m_x, m_y, m_w, m_h}; }
-    //! Real body geometry and position
-    PGE_RectF m_posRect;
-    PGE_RectF m_posRectOld;
-
-    double  m_x;
-    double  m_y;
-    double  m_oldx;
-    double  m_oldy;
-    double  m_w;
-    double  m_h;
-    double  m_oldw;
-    double  m_oldh;
-    double  m_velocityX;
-    double  m_velocityXsrc;
-    double  m_velocityY;
     bool    m_touchLeftWall;
     bool    m_touchRightWall;
     bool    m_stand;
     bool    m_standOnYMovable;
+
     bool    m_crushed;
     bool    m_crushedOld;
     bool    m_crushedHard;
     int     m_crushedHardDelay;
+
     bool    m_cliff;
     //! Allow running over floor holes
     bool    m_allowHoleRuning;
-    bool    m_onSlopeFloor;
-    bool    m_onSlopeFloorOld;
+
+    SlopeState m_slopeFloor;
+    SlopeState m_slopeCeiling;
+
     //! Enable automatical aligning of position while staying on top corner of slope
     bool    m_onSlopeFloorTopAlign;
-    //! Shape of recently contacted floor slope block
-    int     m_onSlopeFloorShape;
-    objRect m_onSlopeFloorRect;
-    bool    m_onSlopeCeiling;
-    bool    m_onSlopeCeilingOld;
-    int     m_onSlopeCeilingShape;
-    objRect m_onSlopeCeilingRect;
+    //! Y-speed add while standing on the slope
     double  m_onSlopeYAdd;
+    //! Blocking filters (0 - playable characters, 1 - NPCs)
     int     m_blocked[2];
+    //! Type of self (0 - playable characters, 1 - NPCs)
     int     m_filterID;
 };
 
@@ -391,10 +363,10 @@ private:
     double cameraX;
     double cameraY;
     int lastTest;
-    QHash<int, bool> keyMap;
-    std::vector<obj>  objs;
+    QHash<int, bool>    keyMap;
+    PGE_RenderList      objs;
     std::vector<unsigned int> movingBlock;
-    obj     pl;
+    physBody     pl;
     QTimer looper;
     QOpenGLFunctions *f;
     QFont m_font;
