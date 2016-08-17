@@ -77,15 +77,7 @@ public:
         SL_LeftTop,
         SL_RightTop
     };
-    /*
-    enum ContactAt{
-        Contact_None = 0,
-        Contact_Top,
-        Contact_Bottom,
-        Contact_Left,
-        Contact_Right,
-        Contact_Skipped
-    };*/
+
     enum BlockedSides{
         Block_NONE      = 0,
         Block_LEFT      = 0x1,
@@ -156,6 +148,9 @@ public:
         inline void setXatRight(double newx) { x = newx-w; }
         inline void setYatTop(double newy) { y = newy; }
         inline void setYatBottom(double newy) { y = newy-h; }
+        inline void setCenterX(double newx) { x = newx - w/2.0; }
+        inline void setCenterY(double newy) { y = newy - h/2.0; }
+        inline void setCenterPos(double X, double Y) { x=X-(w/2.0); y=Y-(h/2.0); }
         inline void setLeft(double newx) { w = fabs(newx-(x+w)); x = newx; }
         inline void setRight(double newx) { w = fabs(x-newx); }
         inline void setTop(double newy) { h = fabs(newy-(y+h)); y = newy; }
@@ -180,7 +175,6 @@ public:
         inline  bool   betweenV(double top, double bottom) { if(bottom < y) return false; if(top > y+h) return false; return true; }
         inline  bool   betweenV(double Y) { return (Y >= y) && (Y <= y+h); }
     };
-
 
     struct SlopeState {
         SlopeState():
@@ -336,14 +330,14 @@ public:
             p.drawText(x+2, y+15, QString("->|"));
     }
 
+    void iterateStep();
+
+    void processCollisions(PGE_RenderList &objs);
+
     QVector<physBody*> l_contactL;
     QVector<physBody*> l_contactR;
     QVector<physBody*> l_contactT;
     QVector<physBody*> l_contactB;
-
-    void iterateStep();
-
-    void processCollisions(PGE_RenderList &objs);
 
     int         m_shape;
     Momentum    m_momentum;
@@ -370,6 +364,15 @@ public:
         l_contactR.clear();
         l_contactT.clear();
         l_contactB.clear();
+
+        m_slopeFloor.hasOld = m_slopeFloor.has;
+        m_slopeFloor.has = false;
+        m_slopeCeiling.hasOld = m_slopeCeiling.has;
+        m_slopeCeiling.has = false;
+        if(!m_slopeFloor.hasOld)
+            m_slopeFloor.shape = -1;
+        if(!m_slopeCeiling.hasOld)
+            m_slopeCeiling.shape = -1;
     }
     bool    m_touchLeftWall;
     bool    m_touchRightWall;
