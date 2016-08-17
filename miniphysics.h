@@ -13,6 +13,8 @@
 
 #include "common_features/rectf.h"
 
+#define IS_MINIPHYSICS_DEMO_PROGRAM
+
 class physBody;
 typedef QVector<physBody> PGE_RenderList;
 typedef int               PGE_SizeT;
@@ -68,7 +70,7 @@ public:
 class physBody: public physBody_DEMOONLY
 {
 public:
-    enum Type {
+    enum ShapeType {
         SL_Rect = 0,
         SL_RightBottom,
         SL_LeftBottom,
@@ -145,6 +147,20 @@ public:
         inline PGE_RectF rectF() {return PGE_RectF(x, y, w, h); }
         inline PGE_RectF rectOldF() {return PGE_RectF(oldx, oldy, oldw, oldh); }
 
+        /**
+         * @brief Copy all current values to the "old"
+         */
+        inline void saveOld() { oldx = x; oldy=y; oldw=w; oldh=h; }
+
+        inline void setXatLeft(double newx) { x = newx; }
+        inline void setXatRight(double newx) { x = newx-w; }
+        inline void setYatTop(double newy) { y = newy; }
+        inline void setYatBottom(double newy) { y = newy-h; }
+        inline void setLeft(double newx) { w = fabs(newx-(x+w)); x = newx; }
+        inline void setRight(double newx) { w = fabs(x-newx); }
+        inline void setTop(double newy) { h = fabs(newy-(y+h)); y = newy; }
+        inline void setBottom(double newy) { h = fabs(y-newy); }
+
         inline double left(){return x;}
         inline double top(){return y;}
         inline double right(){return x+w;}
@@ -180,10 +196,12 @@ public:
 
     physBody(int x=0, int y=0, int id=0) :
         physBody_DEMOONLY(),
-        m_id(id),
+        m_shape(id),
         m_momentum(double(x), double(y)),
         m_touchLeftWall(false),
         m_touchRightWall(false),
+        m_blockedAtLeft(false),
+        m_blockedAtRight(false),
         m_stand(false),
         m_standOnYMovable(false),
         m_crushed(false),
@@ -191,19 +209,25 @@ public:
         m_crushedHard(false),
         m_crushedHardDelay(0),
         m_cliff(false),
+        m_onSlopeYAdd(0.0),
         m_allowHoleRuning(false),
         m_onSlopeFloorTopAlign(false),
-        m_onSlopeYAdd(0.0),
         m_blocked{Block_ALL, Block_ALL},
         m_filterID(0)
     {}
 
     physBody(const physBody& o) :
         physBody_DEMOONLY(o),
-        m_id(o.m_id),
+//        l_contactL(o.l_contactL),
+//        l_contactR(o.l_contactR),
+//        l_contactT(o.l_contactT),
+//        l_contactB(o.l_contactB),
+        m_shape(o.m_shape),
         m_momentum(o.m_momentum),
         m_touchLeftWall(o.m_touchLeftWall),
         m_touchRightWall(o.m_touchRightWall),
+        m_blockedAtLeft(o.m_blockedAtLeft),
+        m_blockedAtRight(o.m_blockedAtRight),
         m_stand(o.m_stand),
         m_standOnYMovable(o.m_standOnYMovable),
         m_crushed(o.m_crushed),
@@ -211,11 +235,11 @@ public:
         m_crushedHard(o.m_crushedHard),
         m_crushedHardDelay(o.m_crushedHardDelay),
         m_cliff(o.m_cliff),
-        m_allowHoleRuning(o.m_allowHoleRuning),
         m_slopeFloor(o.m_slopeFloor),
         m_slopeCeiling(o.m_slopeCeiling),
-        m_onSlopeFloorTopAlign(o.m_onSlopeFloorTopAlign),
         m_onSlopeYAdd(o.m_onSlopeYAdd),
+        m_allowHoleRuning(o.m_allowHoleRuning),
+        m_onSlopeFloorTopAlign(o.m_onSlopeFloorTopAlign),
         m_blocked{o.m_blocked[0], o.m_blocked[1]},
         m_filterID(o.m_filterID)
     {}
@@ -268,7 +292,7 @@ public:
         double h = m_momentum.h-1.0;
 
         QPolygonF poly;
-        switch(m_id)
+        switch(m_shape)
         {
         case SL_RightBottom:
             poly.append(QPointF(x, y+h));
@@ -306,36 +330,68 @@ public:
             p.drawText(x+m_momentum.w+10, y+10, QString("L"));
         if(m_touchRightWall)
             p.drawText(x+m_momentum.w+10, y+10, QString("R"));
+        if(m_blockedAtLeft)
+            p.drawText(x+2, y+15, QString("|<-"));
+        if(m_blockedAtRight)
+            p.drawText(x+2, y+15, QString("->|"));
     }
+
+    QVector<physBody*> l_contactL;
+    QVector<physBody*> l_contactR;
+    QVector<physBody*> l_contactT;
+    QVector<physBody*> l_contactB;
 
     void iterateStep();
 
     void processCollisions(PGE_RenderList &objs);
 
-    int         m_id;
+    int         m_shape;
     Momentum    m_momentum;
+    /***************Events****************/
+    inline void    resetEvents()
+    {
+        m_cliff      = false;
+        m_touchLeftWall  = false;
+        m_touchRightWall = false;
+        m_blockedAtLeft = false;
+        m_blockedAtRight = false;
+        m_crushedOld = m_crushed;
+        m_crushed    = false;
+        m_stand      = false;
+        m_standOnYMovable = false;
+        #ifdef IS_MINIPHYSICS_DEMO_PROGRAM
+        if(m_crushedHardDelay > 0)
+            m_crushedHardDelay -= 1;
+        else
+        #endif
+            m_crushedHard = false;
 
+        l_contactL.clear();
+        l_contactR.clear();
+        l_contactT.clear();
+        l_contactB.clear();
+    }
     bool    m_touchLeftWall;
     bool    m_touchRightWall;
+    bool    m_blockedAtLeft;
+    bool    m_blockedAtRight;
     bool    m_stand;
     bool    m_standOnYMovable;
-
     bool    m_crushed;
     bool    m_crushedOld;
     bool    m_crushedHard;
     int     m_crushedHardDelay;
-
     bool    m_cliff;
-    //! Allow running over floor holes
-    bool    m_allowHoleRuning;
-
+    /*************************************/
     SlopeState m_slopeFloor;
     SlopeState m_slopeCeiling;
-
-    //! Enable automatical aligning of position while staying on top corner of slope
-    bool    m_onSlopeFloorTopAlign;
     //! Y-speed add while standing on the slope
     double  m_onSlopeYAdd;
+
+    //! Allow running over floor holes
+    bool    m_allowHoleRuning;
+    //! Enable automatical aligning of position while staying on top corner of slope
+    bool    m_onSlopeFloorTopAlign;
     //! Blocking filters (0 - playable characters, 1 - NPCs)
     int     m_blocked[2];
     //! Type of self (0 - playable characters, 1 - NPCs)
